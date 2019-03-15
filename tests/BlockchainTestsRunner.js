@@ -35,7 +35,8 @@ module.exports = function runBlockchainTest (options, testData, t, cb) {
   var vm = new VM({
     state: state,
     blockchain: blockchain,
-    hardfork: options.forkConfig.toLowerCase()
+    hardfork: options.forkConfig.toLowerCase(),
+    enableEwasmPrecompiles: options.enableEwasmPrecompiles
   })
   var genesisBlock = new Block({ hardfork: options.forkConfig.toLowerCase() })
 

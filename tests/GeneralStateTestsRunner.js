@@ -57,7 +57,8 @@ function runTestCase (options, testData, t, cb) {
       }
       vm = new VM({
         state: state,
-        hardfork: options.forkConfig.toLowerCase()
+        hardfork: options.forkConfig.toLowerCase(),
+        enableEwasmPrecompiles: options.enableEwasmPrecompiles
       })
       testUtil.setupPreConditions(state, testData, done)
     },

@@ -7,8 +7,8 @@
     "dist"
   ],
   "scripts": {
-    "coverage": "nyc npm run coverageTests && nyc report --reporter=text-lcov > .nyc_output/lcov.info",
-    "coverageTests": "tape './tests/api/**/*.js' ./tests/tester.js -s",
+    "coverage": "npm run build:wast && nyc npm run coverageTests && nyc report --reporter=text-lcov > .nyc_output/lcov.info",
+    "coverageTests": "tape './tests/api/**/*.js' ./tests/tester.js -s && node ./tests/tester.js -s --ewasm",
     "coveralls": "npm run coverage && if [ -n \"$COVERALLS_REPO_TOKEN\" ]; then coveralls <.nyc_output/lcov.info; fi",
     "testVM": "node ./tests/tester -v",
     "testStateByzantium": "npm run build:dist && node ./tests/tester -s --fork='Byzantium' --dist",
@@ -17,13 +17,16 @@
     "testBuildIntegrity": "npm run build:dist && node ./tests/tester -s --dist --test='stackOverflow'",
     "testBlockchain": "npm run build:dist && node --stack-size=1500 ./tests/tester -b --fork='Petersburg' --dist --excludeDir='GeneralStateTests'",
     "testBlockchainGeneralStateTests": "npm run build:dist && node --stack-size=1500 ./tests/tester -b --dist --dir='GeneralStateTests'",
-    "testAPI": "tape './tests/api/**/*.js'",
+    "testAPI": "npm run build:wast && tape './tests/api/**/*.js'",
     "testAPI:browser": "karma start karma.conf.js",
     "test": "echo \"[INFO] Generic test cmd not used. See package.json for more specific test run cmds.\"",
+    "testStateEwasm": "npm run build:dist && node ./tests/tester -s --fork='Constantinople' --dist --ewasm",
+    "testBlockchainEwasm": "npm run build:dist && node --stack-size=1500 ./tests/tester -b --dist --ewasm --excludeDir='GeneralStateTests'",
     "lint": "standard",
     "prepublishOnly": "npm run lint && npm run build:dist && npm run testBuildIntegrity",
-    "build:dist": "babel lib/ -d dist/",
+    "build:dist": "npm run build:wast && babel lib/ -d dist/ --copy-files",
     "build:docs": "documentation build ./lib/index.js ./lib/runBlockchain.js ./lib/runBlock.js ./lib/runTx.js ./lib/runCode.js ./lib/runCall.js --format md --shallow > ./docs/index.md",
+    "build:wast": "node ./scripts/buildWast.js ./lib/ewasm/system/transform-i64.wast -o ./lib/ewasm/system/transform-i64.wasm",
     "formatTest": "node ./scripts/formatTest"
   },
   "repository": {
@@ -69,7 +72,9 @@
     "standard": "^10.0.0",
     "tap-spec": "^5.0.0",
     "tape": "4.6.3",
-    "util.promisify": "^1.0.0"
+    "util.promisify": "^1.0.0",
+    "wabt": "^1.0.8",
+    "yargs": "^12.0.5"
   },
   "author": "mjbecze <mjbecze@gmail.com>",
   "contributors": [
@@ -89,6 +94,9 @@
     "ignore": [
       "dist/**",
       "examples/runcode-browserify.js"
+    ],
+    "globals": [
+      "WebAssembly"
     ]
   }
 }

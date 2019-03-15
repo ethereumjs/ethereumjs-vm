@@ -192,6 +192,8 @@ function runTests (name, runnerArgs, cb) {
   runnerArgs.gasLimit = argv.gas
   runnerArgs.value = argv.value
 
+  runnerArgs.enableEwasmPrecompiles = argv.ewasm
+
   // runnerArgs.vmtrace = true; // for VMTests
 
   if (argv.customStateTest) {
