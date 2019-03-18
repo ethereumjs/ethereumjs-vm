@@ -22,6 +22,7 @@
     "test": "echo \"[INFO] Generic test cmd not used. See package.json for more specific test run cmds.\"",
     "testStateEwasm": "npm run build:dist && node ./tests/tester -s --fork='Constantinople' --dist --ewasm",
     "testBlockchainEwasm": "npm run build:dist && node --stack-size=1500 ./tests/tester -b --dist --ewasm --excludeDir='GeneralStateTests'",
+    "testRunevm": "npm run build:wast && node ./tests/ewasm/runevm",
     "lint": "standard",
     "prepublishOnly": "npm run lint && npm run build:dist && npm run testBuildIntegrity",
     "build:dist": "npm run build:wast && babel lib/ -d dist/ --copy-files",
