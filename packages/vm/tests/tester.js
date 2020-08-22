@@ -12,6 +12,8 @@ function runTests() {
     name = 'GeneralStateTests'
   } else if (argv.blockchain) {
     name = 'BlockchainTests'
+  } else if (argv.stateless) {
+    name = 'Stateless'
   }
 
   const FORK_CONFIG = (argv.fork || config.DEFAULT_FORK_CONFIG)
@@ -78,6 +80,7 @@ function runTests() {
   console.log(`+${'-'.repeat(width)}+`)
   console.log()
 
+  // Run a custom state test
   if (argv.customStateTest) {
     const stateTestRunner = require('./GeneralStateTestsRunner.js')
     let fileName = argv.customStateTest
@@ -91,6 +94,29 @@ function runTests() {
         t.end()
       })
     })
+  // Stateless test execution
+  } else if (name === 'Stateless') {
+    tape(name, t => {
+      const stateTestRunner = require('./StatelessRunner.js')
+      let count = 0
+      testLoader.getTestsFromArgs('GeneralStateTests', async (fileName, testName, test) => {
+        let runSkipped = testGetterArgs.runSkipped
+        let inRunSkipped = runSkipped.includes(fileName)
+        if (runSkipped.length === 0 || inRunSkipped) {
+          count += 1
+          if (count < 2) {
+            t.comment(`file: ${fileName} test: ${testName}`)
+            return stateTestRunner(runnerArgs, test, t)
+          }
+        }
+      }, testGetterArgs).then(() => {
+        t.end()
+      }).catch((err) => {
+        console.log(err)
+        t.end()
+      })
+    })
+  // Blockchain and State Tests
   } else {
     tape(name, t => {
       const runner = require(`./${name}Runner.js`)
