@@ -21,9 +21,9 @@ Running the Blockchain tests:
 
 Tests run against source by default. They can be run with the `--dist` flag:
 
-`npm run build:dist && node ./tests/tester --state --dist`
+`yarn run build:dist && node ./tests/tester --state --dist`
 
-See `package.json` for all the scripts in the `test:` namespace, such as `npm run test:state` which would execute the above.
+See `package.json` for all the scripts in the `test:` namespace, such as `yarn run test:state` which would execute the above.
 
 Use `--fork` to pass in the desired hardfork:
 
@@ -31,7 +31,7 @@ Use `--fork` to pass in the desired hardfork:
 
 or
 
-`npm run test:state -- --fork='Constantinople'`
+`yarn run test:state --fork='Constantinople'`
 
 By default it is set to use the latest hardfork (`FORK_CONFIG` in `tests/tester.js`).
 
@@ -62,20 +62,20 @@ Run a state test from a specified source file not under the `tests` directory:
 
 #### Running tests with a reporter/formatter
 
-`npm run formatTest -t [npm script name OR node command]` will pipe to `tap-spec` by default.
+`yarn run formatTest -t [npm script name OR node command]` will pipe to `tap-spec` by default.
 
 To pipe the results of the API tests through `tap-spec`:
 
-`npm run formatTest -- -t test:API`
+`yarn run formatTest -- -t test:API`
 
 To pipe the results of tests run with a node command through `tap-spec`:
 
-`npm run formatTest -- -t "./tests/tester --blockchain --dir='bcBlockGasLimitTest'"`
+`yarn run formatTest -- -t "./tests/tester --blockchain --dir='bcBlockGasLimitTest'"`
 
 The `-with` flag allows the specification of a formatter of your choosing:
 
 `npm install -g tap-mocha-reporter`
-`npm run formatTest -- -t test:API -with 'tap-mocha-reporter json'`
+`yarn run formatTest -- -t test:API -with 'tap-mocha-reporter json'`
 
 #### Skipping Tests
 
@@ -151,13 +151,13 @@ View the historical benchmark data for the master branch on the [github page](ht
 
 We want to use the compiled JS so `ts-node` does not show up in the profile. So run:
 
-`npm run build:benchmarks`
+`yarn run build:benchmarks`
 
 Then:
 
-`npm run benchmarks`
+`yarn run benchmarks`
 
-To define the number of samples to be run pass in a number like so: `npm run benchmarks -- 10`
+To define the number of samples to be run pass in a number like so: `yarn run benchmarks -- 10`
 
 If you want to get a more detailed look to find bottlenecks we can use [0x](https://github.com/davidmarkclements/0x).
 

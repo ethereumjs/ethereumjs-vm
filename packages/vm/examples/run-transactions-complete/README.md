@@ -14,5 +14,5 @@ The example does these things:
 
 ## Running the example
 
-1. Run `npm run build:dist` in the root of this project
-1. Run `npm run example` in this directory
+1. Run `yarn run build:dist` in the root of this project
+1. Run `yarn run example` in this directory

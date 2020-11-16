@@ -28,29 +28,26 @@ jobs:
         uses: actions/cache@v2
         id: cache
         with:
-          key: VM-${{ runner.os }}-${{ matrix.node-version }}-${{ hashFiles('**/package-lock.json') }}
+          key: cache-${{ runner.os }}-${{ matrix.node-version }}-${{ hashFiles('yarn.lock') }}
           path: '**/node_modules'
 
-      # Installs root dependencies, ignoring Bootstrap All script.
-      # Bootstraps the current package only
-      - run: npm install --ignore-scripts && npm run bootstrap:vm
-        if: steps.cache.outputs.cache-hit != 'true'
+      - run: yarn
         working-directory: ${{github.workspace}}
 
       # Builds current package and the ones it depends from.
-      - run: npm run build:vm
+      - run: yarn run build:vm
         working-directory: ${{github.workspace}}
 
-      - run: npm run coverage
+      - run: yarn run coverage
       
       - uses: codecov/codecov-action@v1
         with:
           file: ${{ env.cwd }}/coverage/lcov.info
           flags: vm
 
-      - run: npm run test:API
-      - run: npm run test:API:browser
-      - run: npm run lint
+      - run: yarn run test:API
+      - run: yarn run test:API:browser
+      - run: yarn run lint
   
   test-vm-state:
     runs-on: ubuntu-latest
@@ -66,20 +63,17 @@ jobs:
         uses: actions/cache@v2
         id: cache
         with:
-          key: VM-${{ runner.os }}-${{ matrix.node-version }}-${{ hashFiles('**/package-lock.json') }}
+          key: cache-${{ runner.os }}-${{ matrix.node-version }}-${{ hashFiles('yarn.lock') }}
           path: '**/node_modules'
 
-      # Installs root dependencies, ignoring Bootstrap All script.
-      # Bootstraps the current package only
-      - run: npm install --ignore-scripts && npm run bootstrap:vm
-        if: steps.cache.outputs.cache-hit != 'true'
+      - run: yarn
         working-directory: ${{github.workspace}}
 
       # Builds current package and the ones it depends from.
-      - run: npm run build:vm
+      - run: yarn run build:vm
         working-directory: ${{github.workspace}}
 
-      - run: npm run test:state:selectedForks
+      - run: yarn run test:state:selectedForks
 
   test-vm-blockchain:
     runs-on: ubuntu-latest
@@ -95,20 +89,17 @@ jobs:
         uses: actions/cache@v2
         id: cache
         with:
-          key: VM-${{ runner.os }}-${{ matrix.node-version }}-${{ hashFiles('**/package-lock.json') }}
+          key: cache-${{ runner.os }}-${{ matrix.node-version }}-${{ hashFiles('yarn.lock') }}
           path: '**/node_modules'
 
-      # Installs root dependencies, ignoring Bootstrap All script.
-      # Bootstraps the current package only
-      - run: npm install --ignore-scripts && npm run bootstrap:vm
-        if: steps.cache.outputs.cache-hit != 'true'
+      - run: yarn
         working-directory: ${{github.workspace}}
 
       # Builds current package and the ones it depends from.
-      - run: npm run build:vm
+      - run: yarn run build:vm
         working-directory: ${{github.workspace}}
 
-      - run: npm run test:blockchain
+      - run: yarn run test:blockchain
 
   vm-benchmarks:
     runs-on: ubuntu-latest
@@ -124,26 +115,23 @@ jobs:
         uses: actions/cache@v2
         id: cache
         with:
-          key: VM-${{ runner.os }}-${{ matrix.node-version }}-${{ hashFiles('**/package-lock.json') }}
+          key: cache-${{ runner.os }}-${{ matrix.node-version }}-${{ hashFiles('yarn.lock') }}
           path: '**/node_modules'
 
-      # Installs root dependencies, ignoring Bootstrap All script.
-      # Bootstraps the current package only
-      - run: npm install --ignore-scripts && npm run bootstrap:vm
-        if: steps.cache.outputs.cache-hit != 'true'
+      - run: yarn
         working-directory: ${{github.workspace}}
 
       # Builds current package and the ones it depends from.
-      - run: npm run build:vm
+      - run: yarn run build:vm
         working-directory: ${{github.workspace}}
 
-      - run: npm run build:benchmarks
+      - run: yarn run build:benchmarks
         working-directory: ${{ env.cwd }}
 
-      - run: npm run benchmarks -- 10 | tee output.txt
+      - run: yarn run benchmarks -- 10 | tee output.txt
         working-directory: ${{ env.cwd }}
 
-      # Run git stash in case github-action-benchmark has trouble switching to gh-pages branch due to differing package-locks
+      # Run git stash in case github-action-benchmark has trouble switching to gh-pages branch due to differing lock files
       - run: git stash
 
       - name: Compare benchmarks

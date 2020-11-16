@@ -18,13 +18,13 @@ The example does these things:
 
 First, follow these instructions:
 
-1. Run `npm run build:dist` in the root of this project
+1. Run `yarn run build:dist` in the root of this project
 
 ### Node
 
-1. Run `npm run example:node` in this directory
+1. Run `yarn run example:node` in this directory
 
 # Run Example in a Browser
 
-1. `npm run example:browser`
+1. `yarn run example:browser`
 1. Open [http://localhost:8080](http://localhost:8080) in a browser and check the result in web console.

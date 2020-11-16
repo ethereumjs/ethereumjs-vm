@@ -11,7 +11,7 @@
   "browser": "dist.browser/index.js",
   "scripts": {
     "build": "ethereumjs-config-ts-build",
-    "prepublishOnly": "npm run test && npm run build",
+    "prepublishOnly": "yarn run lint && yarn run test && yarn run build",
     "coverage": "ethereumjs-config-coverage",
     "docs:build": "typedoc --options typedoc.js",
     "format": "ethereumjs-config-format",
@@ -19,10 +19,10 @@
     "tsc": "ethereumjs-config-tsc",
     "lint": "ethereumjs-config-lint",
     "lint:fix": "ethereumjs-config-lint-fix",
-    "test": "npm run test:node && npm run test:browser",
+    "test": "yarn run test:node && yarn run test:browser",
     "test:node": "tape -r ts-node/register ./test/index.ts",
     "test:browser:build": "tsc && cp -r ./test/json test-build/test",
-    "test:browser": "npm run test:browser:build && karma start karma.conf.js"
+    "test:browser": "yarn run test:browser:build && karma start karma.conf.js"
   },
   "keywords": [
     "ethereum",

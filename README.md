@@ -46,43 +46,34 @@ git submodule update
 ```
 
 This monorepo uses [Lerna](https://lerna.js.org/). It links the local packages together, making development a lot easier.
+This monorepo uses Yarn workspaces
 
 TLDR: Setup
 ```sh
-npm install
-npm run build
-```
-
-TLDR: To update dependencies and (re-)link packages
-```sh
-npm run bootstrap
-npm run build
+yarn
+yarn run build
 ```
 
 Above is the quickest way to set you up. Going down the road, there are two sets of commands: *project* and *package-specific* commands. You can find them at `./package.json` and `./packages/*/package.json`, respectively. Here's a breakdown:
 
 ### Project scripts — run from repository root
 
-#### `npm install`
-Adds dependencies listed in the root package. Also, it executes the `bootstrap` script described below, installing all sub-packages dependencies.
+#### `yarn`
+Installs root and all sub-packages dependencies.
 
-#### `npm run bootstrap`
-
-Installs dependencies for all sub-packages, and links them to create an integrated development environment.
-
-#### `npm run build`
+#### `yarn run build`
 
 Builds all monorepo packages by default. If a scope is provided, it will only build that particular package.
 
 Scoped example, that will only build the VM package: 
-  npm run build -- --scope @ethereumjs/vm
+  yarn run build --scope @ethereumjs/vm
 
 
-#### `npm run build:tree -- --scope @ethereumjs/blockchain`
+#### `yarn run build:tree -- --scope @ethereumjs/blockchain`
 
 Builds all local packages that the provided package depends on (e.g.: @ethereumjs/blockchain), and builds itself. 
 
-If no scope is provided, `npm run build:tree`, will build all sub-packages.
+If no scope is provided, `yarn run build:tree`, will build all sub-packages.
 
 #### `npm run clean`
 
@@ -94,31 +85,29 @@ These scripts execute `lint` and `lint:fix` respectively, to all monorepo packag
 
 ### Package scripts — run from `./packages/<name>`
 
- **⚠️ Important: if you run `npm install` from the package directory, it will remove all links to the local packages, pulling all dependencies from npm. Run `npm install` from the root only.**
- 
 There's a set of rather standardized commands you will find in each package of this repository.
 
-#### `npm run build`
+#### `yarn run build`
 
-Uses TypeScript compiler to build source files. The resulting files can be found at `packages/<name>/dist`.
+Uses TypeScript compiler to build source files. The resulting files can be found at `packages/<name>/dist` and `packages/<name>/dist.browser`.
 
-#### `npm run coverage`
+#### `yarn run coverage`
 
-Runs whatever is on `npm run test` script, capturing testing coverage information. By the end, it displays a coverage table. Additional reports can be found at `packages/<name>/coverage/`.
+Runs the command `yarn run test` script, capturing testing coverage information. At the end, it displays a coverage table. Additional reports can be found at `packages/<name>/coverage/`.
 
-#### `npm run docs:build`
+#### `yarn run docs:build`
 
 Generates package documentation and saves them to `./packages/<name>/docs`.
 
-#### `npm run lint`
+#### `yarn run lint`
 
 Checks code style according to the rules defined in [ethereumjs-config](https://github.com/ethereumjs/ethereumjs-config).
 
-#### `npm run lint:fix`
+#### `yarn run lint:fix`
 
-Fixes code style according to the rules. Differently from `npm run lint`, this command actually writes to files.
+Fixes code style according to the rules. Differently from `yarn run lint`, this command actually writes to files.
 
-#### `npm run test`
+#### `yarn run test`
 
 Runs the package tests. 
 
@@ -128,21 +117,21 @@ _Note that the VM has several test scopes - refer to [packages/vm/package.json](
 
 As this project is powered by Lerna, you can install it globally to enjoy lots more options. Refer to [Lerna docs](https://github.com/lerna/lerna/tree/master/commands/run) for additional commands.
 
-- `npm install -g lerna`
+- `yarn global add lerna`
 - `lerna run`
 - `lerna exec`
 
-#### Cleaning `node_modules`
+#### Cleaning `node_modules` and all build and test files
 
-Hoisting is enabled so dependencies are moved to the root `node_modules`. `lerna clean` [does not remove the root `node_modules`](https://github.com/lerna/lerna/issues/1304) so for convenience you can use the project script `npm run clean`.
+`yarn run clean`
 
 ### Testing packages locally on other projects
 
-There are some ways you can link this repository packages to other projects before publishing. You can symlink dependencies with [`npm link <package>`](https://docs.npmjs.com/cli/link), or install packages from the filesystem using [`npm install <folder>`](https://docs.npmjs.com/cli/install). But they are subject to some externalities and most importantly with how your package manager handles the lifecycle of packages during installs. 
+There are some ways you can link this repository packages to other projects before publishing. You can symlink dependencies with [`yarn link <package>`](https://classic.yarnpkg.com/en/docs/cli/link/), or install packages from the filesystem using [`yarn add file:/path/to/package`](https://classic.yarnpkg.com/en/docs/cli/add/). But they are subject to some externalities and most importantly with how your package manager handles the lifecycle of packages during installs. 
 
 _Note: Git references do not work with monorepo setups out of the box due to the lack of directory traversal on the syntax. E.g.:_
 
-  npm install git@github.com:ethereumjs/ethereumjs-vm.git
+  yarn add git@github.com:ethereumjs/ethereumjs-vm.git
 
 _One way to fetch packages remotely from GitHub before publishing is using [gitpkg.now.sh](https://gitpkg.now.sh/)._
 
@@ -153,7 +142,7 @@ But there's a cleaner way to manage your dependencies using Verdaccio.
 Verdaccio is an npm registry and proxy that can be of great help to test packages locally. Check out their [Getting Started guide](https://github.com/verdaccio/verdaccio#get-started).
 
 #### Installs, hoists dependencies and builds packages
-npm install
+yarn
 
 #### Publish monorepo packages to Verdaccio
 lerna exec "npm publish --registry http://localhost:4873 --ignore-scripts"

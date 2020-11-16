@@ -11,8 +11,9 @@
   "browser": "dist.browser/index.js",
   "scripts": {
     "build": "ethereumjs-config-ts-build",
-    "tsc": "ethereumjs-config-tsc",
-    "prepublishOnly": "npm run test && npm run build",
+    "prepublishOnly": "yarn run lint && yarn run test && yarn run build",
+    "format": "ethereumjs-config-format",
+    "format:fix": "ethereumjs-config-format-fix",
     "lint": "ethereumjs-config-lint",
     "lint:fix": "ethereumjs-config-lint-fix",
     "coverage": "ethereumjs-config-coverage",
