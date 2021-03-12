@@ -29,6 +29,9 @@ export interface FetcherOptions {
 
   /* Retry interval in ms (default: 1000) */
   interval?: number
+
+  /* Destroy the fetcher once we are done */
+  destroyWhenDone?: boolean
 }
 
 /**
@@ -56,6 +59,8 @@ export abstract class Fetcher<JobTask, JobResult, StorageItem> extends Readable 
   protected finished: number // number of tasks which are both processed and also finished writing
   protected running: boolean
   protected reading: boolean
+  private destroyOnFinish: boolean // Destroy the fetcher once we are finished processing each task.
+
   private _readableState?: {
     // This property is inherited from Readable. We only need `length`.
     length: number
@@ -93,6 +98,7 @@ export abstract class Fetcher<JobTask, JobResult, StorageItem> extends Readable 
     this.finished = 0
     this.running = false
     this.reading = false
+    this.destroyOnFinish = options.destroyWhenDone ?? true
   }
 
   /**
@@ -158,6 +164,29 @@ export abstract class Fetcher<JobTask, JobResult, StorageItem> extends Readable 
         return
       }
       f = this.out.peek()
+    }
+  }
+
+  /**
+   * Enqueues a task. If autoRestart is true, and Fetcher is not running, then restart the fetcher.
+   * @param task
+   * @param autoRestart
+   */
+  enqueueTask(task: JobTask, autoRestart = false) {
+    if (!this.running && !autoRestart) {
+      return
+    }
+    const job: Job<JobTask, JobResult, StorageItem> = {
+      task,
+      time: Date.now(),
+      index: this.total++,
+      state: 'idle',
+      peer: null,
+    }
+    this.in.insert(job)
+    if (!this.running && autoRestart) {
+      // eslint-disable-next-line @typescript-eslint/no-floating-promises
+      this.fetch()
     }
   }
 
@@ -306,17 +335,8 @@ export abstract class Fetcher<JobTask, JobResult, StorageItem> extends Readable 
       return false
     }
     this.write()
-    this.tasks().forEach((task: JobTask) => {
-      const job: Job<JobTask, JobResult, StorageItem> = {
-        task,
-        time: Date.now(),
-        index: this.total++,
-        state: 'idle',
-        peer: null,
-      }
-      this.in.insert(job)
-    })
     this.running = true
+    this.tasks().forEach((task: JobTask) => this.enqueueTask(task))
     while (this.running) {
       if (!this.next()) {
         if (this.finished === this.total) {
@@ -325,7 +345,10 @@ export abstract class Fetcher<JobTask, JobResult, StorageItem> extends Readable 
         await this.wait()
       }
     }
-    this.destroy()
+    this.running = false
+    if (this.destroyOnFinish) {
+      this.destroy()
+    }
   }
 
   /**

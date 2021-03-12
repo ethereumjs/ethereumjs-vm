@@ -11,6 +11,9 @@ export interface BlockFetcherOptions extends FetcherOptions {
 
   /* How many blocks to fetch */
   count: BN
+
+  /* Destroy fetcher once all tasks are done */
+  destroyWhenDone?: boolean
 }
 
 export type JobTask = {

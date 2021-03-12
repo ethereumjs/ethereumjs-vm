@@ -99,52 +99,107 @@ export class FullSynchronizer extends Synchronizer {
    * @return Resolves when sync completed
    */
   async syncWithPeer(peer?: Peer): Promise<boolean> {
-    if (!peer) return false
-    const latest = await this.latest(peer)
-    if (!latest) return false
-    const height = new BN(latest.number)
-    const first = this.chain.blocks.height.addn(1)
-    const count = height.sub(first).addn(1)
-    if (count.lten(0)) return false
+    // eslint-disable-next-line no-async-promise-executor
+    return await new Promise(async () => {
+      if (!peer) return false
+      peer!.on('message', (message: any) => {
+        if (message.name === 'NewBlockHashes') {
+          let min: BN = new BN(-1)
+          const data: any[] = message.data
+          const blockNumberList: string[] = []
+          data.forEach((value: any) => {
+            const blockNumber: BN = value[1]
+            blockNumberList.push(blockNumber.toString())
+            if (min.eqn(-1) || blockNumber.lt(min)) {
+              min = blockNumber
+            }
+          })
+          if (min.eqn(-1)) {
+            return
+          }
+          const numBlocks = blockNumberList.length
 
-    const nextForkBlock = this.config.chainCommon.nextHardforkBlock()
-    if (nextForkBlock) {
-      if (first.gten(nextForkBlock)) {
-        this.config.chainCommon.setHardforkByBlockNumber(first.toNumber())
-        this.hardfork = this.config.chainCommon.hardfork()
+          // check if we can request the blocks in bulk
+          let bulkRequest = true
+          const minCopy = min.clone()
+          for (let num = 1; num < numBlocks; num++) {
+            min.iaddn(1)
+            if (!blockNumberList.includes(min.toString())) {
+              bulkRequest = false
+              break
+            }
+          }
+
+          if (bulkRequest) {
+            // FIXME
+            // eslint-disable-next-line @typescript-eslint/no-use-before-define
+            blockFetcher.enqueueTask(
+              {
+                first: minCopy,
+                count: numBlocks,
+              },
+              true
+            )
+          } else {
+            data.forEach((value: any) => {
+              const blockNumber: BN = value[1]
+              // FIXME
+              // eslint-disable-next-line @typescript-eslint/no-use-before-define
+              blockFetcher.enqueueTask(
+                {
+                  first: blockNumber,
+                  count: 1,
+                },
+                true
+              )
+            })
+          }
+        }
+      })
+      const latest = await this.latest(peer)
+      if (!latest) return false
+      const height = new BN(latest.number)
+      const first = this.chain.blocks.height.addn(1)
+      const count = height.sub(first).addn(1)
+      if (count.lten(0)) return false
+
+      const nextForkBlock = this.config.chainCommon.nextHardforkBlock()
+      if (nextForkBlock) {
+        if (first.gten(nextForkBlock)) {
+          this.config.chainCommon.setHardforkByBlockNumber(first.toNumber())
+          this.hardfork = this.config.chainCommon.hardfork()
+        }
       }
-    }
 
-    this.config.logger.debug(
-      `Syncing with peer: ${peer.toString(true)} height=${height.toString(10)}`
-    )
+      this.config.logger.debug(
+        `Syncing with peer: ${peer.toString(true)} height=${height.toString(10)}`
+      )
 
-    this.blockFetcher = new BlockFetcher({
-      config: this.config,
-      pool: this.pool,
-      chain: this.chain,
-      interval: this.interval,
-      first,
-      count,
+      this.blockFetcher = new BlockFetcher({
+        config: this.config,
+        pool: this.pool,
+        chain: this.chain,
+        interval: this.interval,
+        first,
+        count,
+        destroyWhenDone: false,
+      })
+      const blockFetcher = <BlockFetcher>this.blockFetcher
+      this.blockFetcher
+        .on('error', (error: Error) => {
+          this.emit('error', error)
+        })
+        .on('fetched', (blocks: Block[]) => {
+          const first = new BN(blocks[0].header.number)
+          const hash = short(blocks[0].hash())
+          this.config.logger.info(
+            `Imported blocks count=${blocks.length} number=${first.toString(
+              10
+            )} hash=${hash} hardfork=${this.hardfork} peers=${this.pool.size}`
+          )
+        })
+      await this.blockFetcher.fetch()
     })
-    this.blockFetcher
-      .on('error', (error: Error) => {
-        this.emit('error', error)
-      })
-      .on('fetched', (blocks: Block[]) => {
-        const first = new BN(blocks[0].header.number)
-        const hash = short(blocks[0].hash())
-        this.config.logger.info(
-          `Imported blocks count=${blocks.length} number=${first.toString(
-            10
-          )} hash=${hash} hardfork=${this.hardfork} peers=${this.pool.size}`
-        )
-      })
-    await this.blockFetcher.fetch()
-    // TODO: Should this be deleted?
-    // @ts-ignore: error: The operand of a 'delete' operator must be optional
-    delete this.blockFetcher
-    return true
   }
 
   /**
@@ -152,7 +207,11 @@ export class FullSynchronizer extends Synchronizer {
    * @return Resolves with true if sync successful
    */
   async sync(): Promise<boolean> {
-    const peer = this.best()
+    let peer = this.best()
+    while (!peer) {
+      await new Promise((resolve) => setTimeout(resolve, 5000))
+      peer = this.best()
+    }
     return this.syncWithPeer(peer)
   }
 
