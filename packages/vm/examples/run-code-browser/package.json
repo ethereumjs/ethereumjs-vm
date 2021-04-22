@@ -6,7 +6,7 @@
     "example:browser": "browserify index.js -o bundle.js && http-server"
   },
   "dependencies": {
-    "browserify": "^16.5.1",
-    "http-server": "^0.11.1"
+    "browserify": "^17.0.0",
+    "http-server": "^0.12.3"
   }
 }

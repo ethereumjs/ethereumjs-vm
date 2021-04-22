@@ -8,7 +8,7 @@ tape('VM events', (t) => {
   const privKey = toBuffer('0xa5737ecdc1b89ca0091647e727ba082ed8953f29182e94adc397210dda643b07')
 
   t.test('should emit the Block before running it', async (st) => {
-    const vm = new VM()
+    const vm = await VM.create()
 
     let emitted
     vm.on('beforeBlock', (val: any) => {
@@ -29,7 +29,7 @@ tape('VM events', (t) => {
   })
 
   t.test('should emit a RunBlockResult after running a block', async (st) => {
-    const vm = new VM()
+    const vm = await VM.create()
 
     let emitted
     vm.on('afterBlock', (val: any) => {
@@ -51,7 +51,7 @@ tape('VM events', (t) => {
   })
 
   t.test('should emit the Transaction before running it', async (st) => {
-    const vm = new VM()
+    const vm = await VM.create()
 
     let emitted
     vm.on('beforeTx', (val: any) => {
@@ -72,7 +72,7 @@ tape('VM events', (t) => {
   })
 
   t.test('should emit RunTxResult after running a tx', async (st) => {
-    const vm = new VM()
+    const vm = await VM.create()
 
     let emitted: any
     vm.on('afterTx', (val: any) => {
@@ -94,7 +94,7 @@ tape('VM events', (t) => {
   })
 
   t.test('should emit the Message before running it', async (st) => {
-    const vm = new VM()
+    const vm = await VM.create()
 
     let emitted: any
     vm.on('beforeMessage', (val: any) => {
@@ -117,7 +117,7 @@ tape('VM events', (t) => {
   })
 
   t.test('should emit EVMResult after running a message', async (st) => {
-    const vm = new VM()
+    const vm = await VM.create()
 
     let emitted: any
     vm.on('afterMessage', (val: any) => {
@@ -139,7 +139,7 @@ tape('VM events', (t) => {
   })
 
   t.test('should emit InterpreterStep on each step', async (st) => {
-    const vm = new VM()
+    const vm = await VM.create()
 
     let lastEmitted: any
     vm.on('step', (val: any) => {
@@ -163,7 +163,7 @@ tape('VM events', (t) => {
   })
 
   t.test('should emit a NewContractEvent on new contracts', async (st) => {
-    const vm = new VM()
+    const vm = await VM.create()
 
     let emitted: any
     vm.on('newContract', (val: any) => {

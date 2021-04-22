@@ -7,7 +7,7 @@ import { getPrecompile } from '../../../../lib/evm/precompiles'
 tape('Precompiles: ECADD', (t) => {
   t.test('ECADD', async (st) => {
     const common = new Common({ chain: 'mainnet', hardfork: 'petersburg' })
-    const vm = new VM({ common: common })
+    const vm = await VM.create({ common: common })
     const address = new Address(Buffer.from('0000000000000000000000000000000000000006', 'hex'))
     const ECADD = getPrecompile(address, common)
 

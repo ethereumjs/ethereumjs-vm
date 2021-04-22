@@ -27,7 +27,7 @@ async function main() {
     blockchain._ethash!.cacheDB = level('./.cachedb')
   }
 
-  const vm = new VM({ blockchain, common })
+  const vm = await VM.create({ blockchain, common })
 
   await setupPreConditions(vm, testData)
 
@@ -35,7 +35,7 @@ async function main() {
 
   await vm.runBlockchain(blockchain)
 
-  const blockchainHead = await vm.blockchain.getHead()
+  const blockchainHead = await vm.blockchain.getIteratorHead()
 
   console.log('--- Finished processing the BlockChain ---')
   console.log('New head:', '0x' + blockchainHead.hash().toString('hex'))

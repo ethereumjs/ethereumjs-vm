@@ -3,7 +3,7 @@ import { Transaction, TxData } from '@ethereumjs/tx'
 import VM from '../..'
 
 async function main() {
-  const vm = new VM()
+  const vm = await VM.create()
 
   // Import the key pair,
   // used to sign transactions and generate addresses

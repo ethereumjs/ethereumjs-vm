@@ -23,7 +23,7 @@ tape('Istanbul: EIP-1344', async (t) => {
     for (const testCase of testCases) {
       const { chain, hardfork } = testCase
       const common = new Common({ chain, hardfork })
-      const vm = new VM({ common })
+      const vm = await VM.create({ common })
       try {
         const res = await vm.runCode(runCodeArgs)
         if (testCase.err) {

@@ -43,7 +43,7 @@ tape('[Chain]', (t) => {
   })
 
   t.test('should detect unopened chain', async (t) => {
-    const blockchain = new Blockchain({
+    const blockchain = await Blockchain.create({
       validateBlocks: false,
       validateConsensus: false,
     })
@@ -87,7 +87,7 @@ tape('[Chain]', (t) => {
 
   t.test('should add block to chain', async (t) => {
     // TODO: add test cases with activated block validation
-    const blockchain = new Blockchain({
+    const blockchain = await Blockchain.create({
       validateBlocks: false,
       validateConsensus: false,
     })

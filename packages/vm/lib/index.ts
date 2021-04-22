@@ -18,11 +18,9 @@ const promisify = require('util.promisify')
 // very ugly way to detect if we are running in a browser
 const isBrowser = new Function('try {return this===window;}catch(e){ return false;}')
 let mcl: any
-let mclInitPromise: any
 
 if (!isBrowser()) {
   mcl = require('mcl-wasm')
-  mclInitPromise = mcl.init(mcl.BLS12_381)
 }
 
 /**
@@ -149,10 +147,10 @@ export default class VM extends AsyncEventEmitter {
   }
 
   /**
-   * Instantiates a new [[VM]] Object.
+   * Instantiates a new [[VM]] Object. This constructor is private, please use [[VM.create]] for safe async creation.
    * @param opts
    */
-  constructor(opts: VMOpts = {}) {
+  private constructor(opts: VMOpts = {}) {
     super()
 
     this._opts = opts
@@ -212,9 +210,9 @@ export default class VM extends AsyncEventEmitter {
       })
     }
 
-    this.blockchain = opts.blockchain || new Blockchain({ common: this._common })
+    this.blockchain = opts.blockchain ?? new (Blockchain as any)({ common: this._common })
 
-    this._allowUnlimitedContractSize = opts.allowUnlimitedContractSize || false
+    this._allowUnlimitedContractSize = opts.allowUnlimitedContractSize ?? false
 
     this._hardforkByBlockNumber = opts.hardforkByBlockNumber ?? false
 
@@ -236,7 +234,9 @@ export default class VM extends AsyncEventEmitter {
       return
     }
 
-    await this.blockchain.initPromise
+    if ((this.blockchain as any)._init) {
+      await (this.blockchain as any)._init()
+    }
 
     if (this._opts.activatePrecompiles && !this._opts.stateManager) {
       await this.stateManager.checkpoint()
@@ -257,12 +257,13 @@ export default class VM extends AsyncEventEmitter {
         throw new Error('EIP-2537 is currently not supported in browsers')
       } else {
         const mcl = this._mcl
-        await mclInitPromise // ensure that mcl is initialized.
+        await mcl.init(mcl.BLS12_381) // ensure that mcl is initialized.
         mcl.setMapToMode(mcl.IRTF) // set the right map mode; otherwise mapToG2 will return wrong values.
         mcl.verifyOrderG1(1) // subgroup checks for G1
         mcl.verifyOrderG2(1) // subgroup checks for G2
       }
     }
+
     this._isInitialized = true
   }
 
@@ -274,7 +275,6 @@ export default class VM extends AsyncEventEmitter {
    * @param blockchain -  An [@ethereumjs/blockchain](https://github.com/ethereumjs/ethereumjs-monorepo/tree/master/packages/blockchain) object to process
    */
   async runBlockchain(blockchain?: Blockchain, maxBlocks?: number): Promise<void | number> {
-    await this.init()
     return runBlockchain.bind(this)(blockchain, maxBlocks)
   }
 
@@ -289,7 +289,6 @@ export default class VM extends AsyncEventEmitter {
    *  - `generate`: false
    */
   async runBlock(opts: RunBlockOpts): Promise<RunBlockResult> {
-    await this.init()
     return runBlock.bind(this)(opts)
   }
 
@@ -303,7 +302,6 @@ export default class VM extends AsyncEventEmitter {
    * @param {RunTxOpts} opts
    */
   async runTx(opts: RunTxOpts): Promise<RunTxResult> {
-    await this.init()
     return runTx.bind(this)(opts)
   }
 
@@ -315,7 +313,6 @@ export default class VM extends AsyncEventEmitter {
    * @param {RunCallOpts} opts
    */
   async runCall(opts: RunCallOpts): Promise<EVMResult> {
-    await this.init()
     return runCall.bind(this)(opts)
   }
 
@@ -327,7 +324,6 @@ export default class VM extends AsyncEventEmitter {
    * @param {RunCodeOpts} opts
    */
   async runCode(opts: RunCodeOpts): Promise<ExecResult> {
-    await this.init()
     return runCode.bind(this)(opts)
   }
 
@@ -346,7 +342,6 @@ export default class VM extends AsyncEventEmitter {
    * - `revert()`
    */
   async buildBlock(opts: BuildBlockOpts): Promise<BlockBuilder> {
-    await this.init()
     return buildBlock.bind(this)(opts)
   }
 

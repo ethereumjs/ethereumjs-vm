@@ -12,11 +12,11 @@ export function createAccount(nonce: BN = new BN(0), balance: BN = new BN(0xfff3
   return new Account(nonce, balance)
 }
 
-export function setupVM(opts: VMOpts & { genesisBlock?: Block } = {}) {
+export async function setupVM(opts: VMOpts & { genesisBlock?: Block } = {}) {
   const db = level()
   const { common, genesisBlock } = opts
   if (!opts.blockchain) {
-    opts.blockchain = new Blockchain({
+    opts.blockchain = await Blockchain.create({
       db,
       validateBlocks: false,
       validateConsensus: false,
@@ -24,9 +24,10 @@ export function setupVM(opts: VMOpts & { genesisBlock?: Block } = {}) {
       genesisBlock,
     })
   }
-  return new VM({
+  const vm = await VM.create({
     ...opts,
   })
+  return vm
 }
 
 export function getTransaction(

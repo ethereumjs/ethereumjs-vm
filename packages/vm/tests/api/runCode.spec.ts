@@ -18,8 +18,8 @@ const testCases = [
   { code: [STOP], resultPC: 1 },
 ]
 
-tape('VM.runcode: initial program counter', (t) => {
-  const vm = new VM()
+tape('VM.runcode: initial program counter', async (t) => {
+  const vm = await VM.create()
 
   testCases.forEach((testData, i) => {
     t.test('should start the execution at the specified pc or 0 #' + i.toString(), async (st) => {

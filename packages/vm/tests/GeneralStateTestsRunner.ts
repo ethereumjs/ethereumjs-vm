@@ -72,7 +72,7 @@ async function runTestCase(options: any, testData: any, t: tape.Test) {
 
   const common = new Common({ chain: 'mainnet', hardfork, eips })
 
-  const vm = new VM({ state, common })
+  const vm = await VM.create({ state, common })
 
   await setupPreConditions(vm.stateManager._trie, testData)
 

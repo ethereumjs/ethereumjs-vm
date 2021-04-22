@@ -19,7 +19,7 @@ tape('reorg tests', (t) => {
     'should correctly reorg the chain if the total difficulty is higher on a lower block number than the current head block',
     async (st) => {
       const common = new Common({ chain: 'mainnet', hardfork: 'muirGlacier' })
-      const blockchain = new Blockchain({
+      const blockchain = await Blockchain.create({
         validateBlocks: true,
         validateConsensus: false,
         common,
@@ -92,7 +92,7 @@ tape('reorg tests', (t) => {
     async (st) => {
       const common = new Common({ chain: 'goerli', hardfork: 'chainstart' })
       const genesisBlock = Block.genesis({}, { common })
-      const blockchain = new Blockchain({
+      const blockchain = await Blockchain.create({
         validateBlocks: false,
         validateConsensus: false,
         common,

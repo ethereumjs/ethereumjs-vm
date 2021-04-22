@@ -17,97 +17,15 @@ import {
   CLIQUE_NONCE_AUTH,
   CLIQUE_NONCE_DROP,
 } from './clique'
+import type { LevelUp } from 'levelup'
+import type { BlockchainInterface, BlockchainOptions, OnBlock } from './types'
+const level = require('level-mem')
 
 const debug = createDebugLogger('blockchain:clique')
 
-import type { LevelUp } from 'levelup'
-const level = require('level-mem')
-
-type OnBlock = (block: Block, reorg: boolean) => Promise<void> | void
-
-export interface BlockchainInterface {
-  /**
-   * Adds a block to the blockchain.
-   *
-   * @param block - The block to be added to the blockchain.
-   */
-  putBlock(block: Block): Promise<void>
-
-  /**
-   * Deletes a block from the blockchain. All child blocks in the chain are
-   * deleted and any encountered heads are set to the parent block.
-   *
-   * @param blockHash - The hash of the block to be deleted
-   */
-  delBlock(blockHash: Buffer): Promise<void>
-
-  /**
-   * Returns a block by its hash or number.
-   */
-  getBlock(blockId: Buffer | number | BN): Promise<Block | null>
-
-  /**
-   * Iterates through blocks starting at the specified iterator head and calls
-   * the onBlock function on each block.
-   *
-   * @param name - Name of the state root head
-   * @param onBlock - Function called on each block with params (block: Block,
-   * reorg: boolean)
-   */
-  iterator(name: string, onBlock: OnBlock): Promise<void | number>
-}
-
-/**
- * This are the options that the Blockchain constructor can receive.
- */
-export interface BlockchainOptions {
-  /**
-   * Specify the chain and hardfork by passing a Common instance.
-   *
-   * If not provided this defaults to chain `mainnet` and hardfork `chainstart`
-   *
-   */
-  common?: Common
-
-  /**
-   * Database to store blocks and metadata.
-   * Should be an `abstract-leveldown` compliant store
-   * wrapped with `encoding-down`.
-   * For example:
-   *   `levelup(encode(leveldown('./db1')))`
-   * or use the `level` convenience package:
-   *   `level('./db1')`
-   */
-  db?: LevelUp
-
-  /**
-   * This flags indicates if a block should be validated along the consensus algorithm
-   * or protocol used by the chain, e.g. by verifying the PoW on the block.
-   *
-   * Supported consensus types and algorithms (taken from the `Common` instance):
-   * - 'pow' with 'ethash' algorithm (validates the proof-of-work)
-   * - 'poa' with 'clique' algorithm (verifies the block signatures)
-   * Default: `true`.
-   */
-  validateConsensus?: boolean
-
-  /**
-   * This flag indicates if protocol-given consistency checks on
-   * block headers and included uncles and transactions should be performed,
-   * see Block#validate for details.
-   *
-   */
-  validateBlocks?: boolean
-
-  /**
-   * The blockchain only initializes succesfully if it has a genesis block. If
-   * there is no block available in the DB and a `genesisBlock` is provided,
-   * then the provided `genesisBlock` will be used as genesis. If no block is
-   * present in the DB and no block is provided, then the genesis block as
-   * provided from the `common` will be used.
-   */
-  genesisBlock?: Block
-}
+// Export types to not introduce any
+// breaking changes prior to v5.2.1
+export { BlockchainInterface, BlockchainOptions }
 
 /**
  * This class stores and interacts with blocks.
@@ -115,6 +33,10 @@ export interface BlockchainOptions {
 export default class Blockchain implements BlockchainInterface {
   db: LevelUp
   dbManager: DBManager
+  _ethash?: Ethash
+  protected _isInitialized: boolean = false
+  private _lock: Semaphore
+  private _common: Common
 
   private _genesis?: Buffer // the genesis hash of this blockchain
 
@@ -124,19 +46,14 @@ export default class Blockchain implements BlockchainInterface {
   // the hash with the highest total difficulty.
   private _headBlockHash?: Buffer // the hash of the current head block
   private _headHeaderHash?: Buffer // the hash of the current head header
+
   // A Map which stores the head of each key (for instance the "vm" key) which is
   // updated along an `iterator()` method run and can be used to (re)run
   // non-verified blocks (for instance in the VM).
   private _heads: { [key: string]: Buffer }
 
-  public initPromise: Promise<void>
-  private _lock: Semaphore
-
-  private _common: Common
   private readonly _validateConsensus: boolean
   private readonly _validateBlocks: boolean
-
-  _ethash?: Ethash
 
   /**
    * Keep signer history data (signer states and votes)
@@ -194,9 +111,7 @@ export default class Blockchain implements BlockchainInterface {
 
   public static async create(opts: BlockchainOptions = {}) {
     const blockchain = new Blockchain(opts)
-    await blockchain.initPromise!.catch((e) => {
-      throw e
-    })
+    await blockchain._init(opts.genesisBlock)
     return blockchain
   }
 
@@ -220,12 +135,12 @@ export default class Blockchain implements BlockchainInterface {
   }
 
   /**
-   * Creates new Blockchain object
+   * Creates new Blockchain object. This constructor is private, please use [[Blockchain.create]] for safe async creation.
    *
    * @param opts - An object with the options that this constructor takes. See
    * [[BlockchainOptions]].
    */
-  constructor(opts: BlockchainOptions = {}) {
+  private constructor(opts: BlockchainOptions = {}) {
     // Throw on chain or hardfork options removed in latest major release to
     // prevent implicit chain setup on a wrong chain
     if ('chain' in opts || 'hardfork' in opts) {
@@ -273,9 +188,6 @@ export default class Blockchain implements BlockchainInterface {
     if (opts.genesisBlock && !opts.genesisBlock.isGenesis()) {
       throw 'supplied block is not a genesis block'
     }
-
-    // eslint-disable-next-line @typescript-eslint/no-floating-promises
-    this.initPromise = this._init(opts.genesisBlock)
   }
 
   /**
@@ -291,13 +203,17 @@ export default class Blockchain implements BlockchainInterface {
   }
 
   /**
-   * This method is called in the constructor and either sets up the DB or reads
+   * This method is called in [[Blockchain.create]] and either sets up the DB or reads
    * values from the DB and makes these available to the consumers of
    * Blockchain.
    *
    * @hidden
    */
   private async _init(genesisBlock?: Block): Promise<void> {
+    if (this._isInitialized) {
+      return
+    }
+
     let dbGenesisBlock
     try {
       const genesisHash = await this.dbManager.numberToHash(new BN(0))
@@ -383,18 +299,8 @@ export default class Blockchain implements BlockchainInterface {
       }
       this._headBlockHash = genesisHash
     }
-  }
 
-  /**
-   * Perform the `action` function after we have initialized this module and
-   * have acquired a lock
-   * @param action - the action function to run after initializing and acquiring
-   * a lock
-   * @hidden
-   */
-  private async initAndLock<T>(action: () => Promise<T>): Promise<T> {
-    await this.initPromise
-    return await this.runWithLock(action)
+    this._isInitialized = true
   }
 
   /**
@@ -717,7 +623,7 @@ export default class Blockchain implements BlockchainInterface {
    * @param name - Optional name of the iterator head (default: 'vm')
    */
   async getIteratorHead(name = 'vm'): Promise<Block> {
-    return await this.initAndLock<Block>(async () => {
+    return await this.runWithLock<Block>(async () => {
       // if the head is not found return the genesis hash
       const hash = this._heads[name] || this._genesis
       if (!hash) {
@@ -740,7 +646,7 @@ export default class Blockchain implements BlockchainInterface {
    * method on a first run)
    */
   async getHead(name = 'vm'): Promise<Block> {
-    return await this.initAndLock<Block>(async () => {
+    return await this.runWithLock<Block>(async () => {
       // if the head is not found return the headHeader
       const hash = this._heads[name] || this._headBlockHash
       if (!hash) {
@@ -756,7 +662,7 @@ export default class Blockchain implements BlockchainInterface {
    * Returns the latest header in the canonical chain.
    */
   async getLatestHeader(): Promise<BlockHeader> {
-    return await this.initAndLock<BlockHeader>(async () => {
+    return await this.runWithLock<BlockHeader>(async () => {
       if (!this._headHeaderHash) {
         throw new Error('No head header set')
       }
@@ -770,7 +676,7 @@ export default class Blockchain implements BlockchainInterface {
    * Returns the latest full block in the canonical chain.
    */
   async getLatestBlock(): Promise<Block> {
-    return this.initAndLock<Block>(async () => {
+    return this.runWithLock<Block>(async () => {
       if (!this._headBlockHash) {
         throw new Error('No head block set')
       }
@@ -790,7 +696,6 @@ export default class Blockchain implements BlockchainInterface {
    * @param blocks - The blocks to be added to the blockchain
    */
   async putBlocks(blocks: Block[]) {
-    await this.initPromise
     for (let i = 0; i < blocks.length; i++) {
       await this.putBlock(blocks[i])
     }
@@ -805,7 +710,6 @@ export default class Blockchain implements BlockchainInterface {
    * @param block - The block to be added to the blockchain
    */
   async putBlock(block: Block) {
-    await this.initPromise
     await this._putBlockOrHeader(block)
   }
 
@@ -819,7 +723,6 @@ export default class Blockchain implements BlockchainInterface {
    * @param headers - The headers to be added to the blockchain
    */
   async putHeaders(headers: Array<any>) {
-    await this.initPromise
     for (let i = 0; i < headers.length; i++) {
       await this.putHeader(headers[i])
     }
@@ -834,7 +737,6 @@ export default class Blockchain implements BlockchainInterface {
    * @param header - The header to be added to the blockchain
    */
   async putHeader(header: BlockHeader) {
-    await this.initPromise
     await this._putBlockOrHeader(header)
   }
 
@@ -1001,7 +903,6 @@ export default class Blockchain implements BlockchainInterface {
     // in the `VM` if we encounter a `BLOCKHASH` opcode: then a BN is used we
     // need to then read the block from the canonical chain Q: is this safe? We
     // know it is OK if we call it from the iterator... (runBlock)
-    await this.initPromise
     return await this._getBlock(blockId)
   }
 
@@ -1036,7 +937,7 @@ export default class Blockchain implements BlockchainInterface {
     skip: number,
     reverse: boolean
   ): Promise<Block[]> {
-    return await this.initAndLock<Block[]>(async () => {
+    return await this.runWithLock<Block[]>(async () => {
       const blocks: Block[] = []
       let i = -1
 
@@ -1073,7 +974,7 @@ export default class Blockchain implements BlockchainInterface {
    * @param hashes - Ordered array of hashes (ordered on `number`).
    */
   async selectNeededHashes(hashes: Array<Buffer>): Promise<Buffer[]> {
-    return await this.initAndLock<Buffer[]>(async () => {
+    return await this.runWithLock<Buffer[]>(async () => {
       let max: number
       let mid: number
       let min: number
@@ -1118,7 +1019,6 @@ export default class Blockchain implements BlockchainInterface {
     // But is this the way to go? If we know this is called from the
     // iterator/runBlockchain we are safe, but if this is called from anywhere
     // else then this might lead to a concurrency problem?
-    await this.initPromise
     await this._delBlock(blockHash)
   }
 
@@ -1218,7 +1118,7 @@ export default class Blockchain implements BlockchainInterface {
    * @hidden
    */
   private async _iterator(name: string, onBlock: OnBlock, maxBlocks?: number): Promise<number> {
-    return await this.initAndLock<number>(
+    return await this.runWithLock<number>(
       async (): Promise<number> => {
         const headHash = this._heads[name] || this._genesis
         let lastBlock: Block | undefined
@@ -1278,7 +1178,7 @@ export default class Blockchain implements BlockchainInterface {
    * @deprecated use `setIteratorHead()` instead
    */
   async setHead(tag: string, headHash: Buffer) {
-    await this.initAndLock<void>(async () => {
+    await this.runWithLock<void>(async () => {
       this._heads[tag] = headHash
       await this._saveHeads()
     })

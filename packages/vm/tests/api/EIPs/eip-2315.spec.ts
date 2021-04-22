@@ -8,7 +8,7 @@ tape('Berlin: EIP 2315 tests', (t) => {
 
   const runTest = async function (test: any, st: tape.Test) {
     let i = 0
-    const vm = new VM({ common })
+    const vm = await VM.create({ common })
 
     vm.on('step', function (step: any) {
       if (test.steps.length) {

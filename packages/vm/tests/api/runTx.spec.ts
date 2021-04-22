@@ -35,11 +35,11 @@ tape('runTx() -> successful API parameter usage', async (t) => {
 
   t.test('simple run (unmodified options)', async (t) => {
     let common = new Common({ chain: 'mainnet', hardfork: 'berlin' })
-    let vm = new VM({ common })
+    let vm = await VM.create({ common })
     await simpleRun(vm, 'mainnet (PoW), berlin HF, default SM - should run without errors')
 
     common = new Common({ chain: 'rinkeby', hardfork: 'berlin' })
-    vm = new VM({ common })
+    vm = await VM.create({ common })
     await simpleRun(vm, 'rinkeby (PoA), berlin HF, default SM - should run without errors')
 
     t.end()
@@ -47,7 +47,7 @@ tape('runTx() -> successful API parameter usage', async (t) => {
 
   t.test('Legacy Transaction with HF set to pre-Berlin', async (t) => {
     const common = new Common({ chain: 'mainnet', hardfork: 'istanbul' })
-    const vm = new VM({ common })
+    const vm = await VM.create({ common })
 
     const tx = getTransaction(vm._common, 0, true)
 
@@ -68,7 +68,7 @@ tape('runTx() -> successful API parameter usage', async (t) => {
     'custom block (block option), disabled block gas limit validation (skipBlockGasLimitValidation: true)',
     async (t) => {
       for (const txType of TRANSACTION_TYPES) {
-        const vm = new VM({ common })
+        const vm = await VM.create({ common })
 
         const privateKey = Buffer.from(
           'e331b6d69882b4cb4ea581d88e0b604039a3de5967688d3dcffdd2270c0fd109',
@@ -127,7 +127,7 @@ tape('runTx() -> successful API parameter usage', async (t) => {
 tape('runTx() -> API parameter usage/data errors', (t) => {
   t.test('Typed Transaction with HF set to pre-Berlin', async (t) => {
     const common = new Common({ chain: 'mainnet', hardfork: 'istanbul' })
-    const vm = new VM({ common })
+    const vm = await VM.create({ common })
 
     const tx = getTransaction(new Common({ chain: 'mainnet', hardfork: 'berlin' }), 1, true)
 
@@ -149,7 +149,7 @@ tape('runTx() -> API parameter usage/data errors', (t) => {
   })
 
   t.test('simple run (reportAccessList option)', async (t) => {
-    const vm = new VM({ common })
+    const vm = await VM.create({ common })
 
     const tx = getTransaction(vm._common, 0, true)
 
@@ -168,7 +168,7 @@ tape('runTx() -> API parameter usage/data errors', (t) => {
 
   t.test('run without signature', async (t) => {
     for (const txType of TRANSACTION_TYPES) {
-      const vm = new VM({ common })
+      const vm = await VM.create({ common })
       const tx = getTransaction(vm._common, txType.type, false)
       try {
         await vm.runTx({ tx })
@@ -181,7 +181,7 @@ tape('runTx() -> API parameter usage/data errors', (t) => {
 
   t.test('run with insufficient funds', async (t) => {
     for (const txType of TRANSACTION_TYPES) {
-      const vm = new VM({ common })
+      const vm = await VM.create({ common })
       const tx = getTransaction(vm._common, txType.type, true)
       try {
         await vm.runTx({ tx })
@@ -197,7 +197,7 @@ tape('runTx() -> runtime behavior', async (t) => {
   t.test('storage cache', async (t) => {
     for (const txType of TRANSACTION_TYPES) {
       const common = new Common({ chain: 'mainnet', hardfork: 'berlin' })
-      const vm = new VM({ common })
+      const vm = await VM.create({ common })
       const privateKey = Buffer.from(
         'e331b6d69882b4cb4ea581d88e0b604039a3de5967688d3dcffdd2270c0fd109',
         'hex'
@@ -246,7 +246,7 @@ tape('runTx() -> runtime behavior', async (t) => {
 tape('runTx() -> runtime errors', async (t) => {
   t.test('account balance overflows (call)', async (t) => {
     for (const txType of TRANSACTION_TYPES) {
-      const vm = new VM({ common })
+      const vm = await VM.create({ common })
       const tx = getTransaction(vm._common, txType.type, true, '0x01')
 
       const caller = tx.getSenderAddress()
@@ -274,7 +274,7 @@ tape('runTx() -> runtime errors', async (t) => {
 
   t.test('account balance overflows (create)', async (t) => {
     for (const txType of TRANSACTION_TYPES) {
-      const vm = new VM({ common })
+      const vm = await VM.create({ common })
       const tx = getTransaction(vm._common, txType.type, true, '0x01', true)
 
       const caller = tx.getSenderAddress()
@@ -308,7 +308,7 @@ tape('runTx() -> runtime errors', async (t) => {
 tape('runTx() -> API return values', async (t) => {
   t.test('simple run, common return values', async (t) => {
     for (const txType of TRANSACTION_TYPES) {
-      const vm = new VM({ common })
+      const vm = await VM.create({ common })
       const tx = getTransaction(vm._common, txType.type, true)
 
       const caller = tx.getSenderAddress()

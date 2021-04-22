@@ -12,7 +12,7 @@ tape('[Integration:FullEthereumService]', async (t) => {
     const loglevel = 'error'
     const config = new Config({ loglevel })
     const server = new MockServer({ config })
-    const blockchain = new Blockchain({
+    const blockchain = await Blockchain.create({
       validateBlocks: false,
       validateConsensus: false,
     })

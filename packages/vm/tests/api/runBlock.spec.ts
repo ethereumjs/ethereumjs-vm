@@ -45,7 +45,7 @@ tape('runBlock() -> successful API parameter usage', async (t) => {
   }
 
   t.test('PoW block, unmodified options', async (t) => {
-    const vm = setupVM()
+    const vm = await setupVM()
     await simpleRun(vm)
     t.end()
   })
@@ -55,7 +55,7 @@ tape('runBlock() -> successful API parameter usage', async (t) => {
     async (t) => {
       const customChainParams = { name: 'custom', chainId: 123, networkId: 678 }
       const common = Common.forCustomChain('mainnet', customChainParams, 'berlin')
-      const vm = setupVM({ common })
+      const vm = await setupVM({ common })
       await simpleRun(vm)
       t.end()
     }
@@ -64,7 +64,7 @@ tape('runBlock() -> successful API parameter usage', async (t) => {
   t.test('PoW block, Common custom chain (Common customChains constructor option)', async (t) => {
     const customChains = [testnet]
     const common = new Common({ chain: 'testnet', hardfork: 'berlin', customChains })
-    const vm = setupVM({ common })
+    const vm = await setupVM({ common })
     await simpleRun(vm)
     t.end()
   })
@@ -106,8 +106,8 @@ tape('runBlock() -> successful API parameter usage', async (t) => {
       )
     }
 
-    const vm = new VM({ common: common1, hardforkByBlockNumber: true })
-    const vm_noSelect = new VM({ common: common2 })
+    const vm = await VM.create({ common: common1, hardforkByBlockNumber: true })
+    const vm_noSelect = await VM.create({ common: common2 })
 
     const txResultMuirGlacier = await vm.runBlock({
       block: getBlock(common1),
@@ -132,7 +132,7 @@ tape('runBlock() -> successful API parameter usage', async (t) => {
 })
 
 tape('runBlock() -> API parameter usage/data errors', async (t) => {
-  const vm = new VM({ common })
+  const vm = await VM.create({ common })
 
   t.test('should fail when runTx fails', async (st) => {
     const blockRlp = testData.blocks[0].rlp
@@ -149,7 +149,7 @@ tape('runBlock() -> API parameter usage/data errors', async (t) => {
   })
 
   t.test('should fail when block gas limit higher than 2^63-1', async (t) => {
-    const vm = new VM({ common })
+    const vm = await VM.create({ common })
 
     const block = Block.fromBlockData({
       header: {
@@ -166,7 +166,7 @@ tape('runBlock() -> API parameter usage/data errors', async (t) => {
   })
 
   t.test('should fail when block validation fails', async (t) => {
-    const vm = new VM({ common })
+    const vm = await VM.create({ common })
 
     const blockRlp = testData.blocks[0].rlp
     const block = Object.create(Block.fromRLPSerializedBlock(blockRlp))
@@ -183,7 +183,7 @@ tape('runBlock() -> API parameter usage/data errors', async (t) => {
   })
 
   t.test('should fail when tx gas limit higher than block gas limit', async (t) => {
-    const vm = new VM({ common })
+    const vm = await VM.create({ common })
 
     const blockRlp = testData.blocks[0].rlp
     const block = Object.create(Block.fromRLPSerializedBlock(blockRlp))
@@ -211,7 +211,7 @@ tape('runBlock() -> runtime behavior', async (t) => {
   t.test('DAO fork behavior', async (t) => {
     const common = getDAOCommon(1)
 
-    const vm = setupVM({ common })
+    const vm = await setupVM({ common })
 
     const block1: any = rlp.decode(testData.blocks[0].rlp)
     // edit extra data of this block to "dao-hard-fork"
@@ -285,7 +285,7 @@ async function runBlockAndGetAfterBlockEvent(
 }
 
 tape('should correctly reflect generated fields', async (t) => {
-  const vm = new VM()
+  const vm = await VM.create()
 
   // We create a block with a receiptTrie and transactionsTrie
   // filled with 0s and no txs. Once we run it we should
@@ -310,7 +310,7 @@ tape('should correctly reflect generated fields', async (t) => {
 })
 
 async function runWithHf(hardfork: string) {
-  const vm = setupVM({ common: new Common({ chain: 'mainnet', hardfork }) })
+  const vm = await setupVM({ common: new Common({ chain: 'mainnet', hardfork }) })
 
   const blockRlp = testData.blocks[0].rlp
   const block = Block.fromRLPSerializedBlock(blockRlp)
@@ -378,7 +378,7 @@ tape('runBlock() -> tx types', async (t) => {
 
   t.test('legacy tx', async (t) => {
     const common = new Common({ chain: 'mainnet', hardfork: 'berlin' })
-    const vm = setupVM({ common })
+    const vm = await setupVM({ common })
     await vm.stateManager.generateCanonicalGenesis()
 
     const tx = Transaction.fromTxData({ gasLimit: 53000, value: 1 }, { common, freeze: false })
@@ -395,7 +395,7 @@ tape('runBlock() -> tx types', async (t) => {
 
   t.test('access list tx', async (t) => {
     const common = new Common({ chain: 'mainnet', hardfork: 'berlin' })
-    const vm = setupVM({ common })
+    const vm = await setupVM({ common })
     await vm.stateManager.generateCanonicalGenesis()
 
     const tx = AccessListEIP2930Transaction.fromTxData(

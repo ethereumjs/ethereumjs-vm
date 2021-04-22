@@ -46,7 +46,8 @@ tape('EIP-2930 Optional Access Lists tests', (t) => {
       },
       { common }
     ).sign(privateKey)
-    const vm = new VM({ common })
+
+    const vm = await VM.create({ common })
 
     // contract code PUSH1 0x00 SLOAD STOP
     await vm.stateManager.putContractCode(contractAddress, Buffer.from('60005400', 'hex'))

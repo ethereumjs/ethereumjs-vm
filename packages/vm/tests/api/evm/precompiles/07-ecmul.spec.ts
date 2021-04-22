@@ -7,7 +7,7 @@ import { getPrecompile } from '../../../../lib/evm/precompiles'
 tape('Precompiles: ECMUL', (t) => {
   t.test('ECMUL', async (st) => {
     const common = new Common({ chain: 'mainnet', hardfork: 'petersburg' })
-    const vm = new VM({ common: common })
+    const vm = await VM.create({ common: common })
     const address = new Address(Buffer.from('0000000000000000000000000000000000000007', 'hex'))
     const ECMUL = getPrecompile(address, common)
 

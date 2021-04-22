@@ -20,7 +20,7 @@ tape('EIP-2537 BLS tests', (t) => {
       return st.end()
     }
     const common = new Common({ chain: 'mainnet', hardfork: 'muirGlacier' })
-    const vm = new VM({ common: common })
+    const vm = await VM.create({ common: common })
 
     for (const address of precompiles) {
       const to = new Address(Buffer.from(address, 'hex'))
@@ -51,7 +51,7 @@ tape('EIP-2537 BLS tests', (t) => {
       return st.end()
     }
     const common = new Common({ chain: 'mainnet', hardfork: 'byzantium', eips: [2537] })
-    const vm = new VM({ common: common })
+    const vm = await VM.create({ common: common })
 
     for (const address of precompiles) {
       const to = new Address(Buffer.from(address, 'hex'))

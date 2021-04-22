@@ -167,7 +167,7 @@ async function main() {
   }
   const account = Account.fromAccountData(acctData)
 
-  const vm = new VM()
+  const vm = await VM.create()
   await vm.stateManager.putAccount(accountAddress, account)
 
   console.log('Set account a balance of 1 ETH')

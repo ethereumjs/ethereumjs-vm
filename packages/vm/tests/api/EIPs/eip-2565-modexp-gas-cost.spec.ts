@@ -9,7 +9,7 @@ const testData = require('../testdata/eip-2565.json')
 tape('EIP-2565 ModExp gas cost tests', (t) => {
   t.test('Test return data, gas cost and execution status against testdata', async (st) => {
     const common = new Common({ chain: 'mainnet', hardfork: 'byzantium', eips: [2565] })
-    const vm = new VM({ common: common })
+    const vm = await VM.create({ common: common })
 
     for (const test of testData) {
       const testName = test.Name

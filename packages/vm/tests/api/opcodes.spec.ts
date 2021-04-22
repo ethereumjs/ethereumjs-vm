@@ -6,9 +6,9 @@ tape('VM -> getActiveOpcodes()', (t) => {
   const CHAINID = 0x46 //istanbul opcode
   const BEGINSUB = 0x5c // EIP-2315 opcode
 
-  t.test('should not expose opcodes from a follow-up HF (istanbul -> petersburg)', (st) => {
+  t.test('should not expose opcodes from a follow-up HF (istanbul -> petersburg)', async (st) => {
     const common = new Common({ chain: 'mainnet', hardfork: 'petersburg' })
-    const vm = new VM({ common })
+    const vm = await VM.create({ common })
     st.equal(
       vm.getActiveOpcodes().get(CHAINID),
       undefined,
@@ -17,9 +17,9 @@ tape('VM -> getActiveOpcodes()', (t) => {
     st.end()
   })
 
-  t.test('should expose opcodes when HF is active (>= istanbul)', (st) => {
+  t.test('should expose opcodes when HF is active (>= istanbul)', async (st) => {
     let common = new Common({ chain: 'mainnet', hardfork: 'istanbul' })
-    let vm = new VM({ common })
+    let vm = await VM.create({ common })
     st.equal(
       vm.getActiveOpcodes().get(CHAINID)!.name,
       'CHAINID',
@@ -27,7 +27,7 @@ tape('VM -> getActiveOpcodes()', (t) => {
     )
 
     common = new Common({ chain: 'mainnet', hardfork: 'muirGlacier' })
-    vm = new VM({ common })
+    vm = await VM.create({ common })
     st.equal(
       vm.getActiveOpcodes().get(CHAINID)!.name,
       'CHAINID',
@@ -37,9 +37,9 @@ tape('VM -> getActiveOpcodes()', (t) => {
     st.end()
   })
 
-  t.test('should expose opcodes when EIP is active', (st) => {
+  t.test('should expose opcodes when EIP is active', async (st) => {
     let common = new Common({ chain: 'mainnet', hardfork: 'istanbul', eips: [2315] })
-    let vm = new VM({ common })
+    let vm = await VM.create({ common })
     st.equal(
       vm.getActiveOpcodes().get(BEGINSUB)!.name,
       'BEGINSUB',
@@ -47,7 +47,7 @@ tape('VM -> getActiveOpcodes()', (t) => {
     )
 
     common = new Common({ chain: 'mainnet', hardfork: 'istanbul' })
-    vm = new VM({ common })
+    vm = await VM.create({ common })
     st.equal(
       vm.getActiveOpcodes().get(BEGINSUB),
       undefined,
@@ -59,7 +59,7 @@ tape('VM -> getActiveOpcodes()', (t) => {
 
   t.test('should update opcodes on a hardfork change', async (st) => {
     const common = new Common({ chain: 'mainnet', hardfork: 'istanbul' })
-    const vm = new VM({ common })
+    const vm = await VM.create({ common })
 
     common.setHardfork('byzantium')
     st.equal(

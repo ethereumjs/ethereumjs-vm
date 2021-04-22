@@ -26,7 +26,7 @@ tape('Constantinople: EIP-1014 CREATE2 creates the right contract address', asyn
   ) // contract address
   // setup the vm
   const common = new Common({ chain: 'mainnet', hardfork: 'constantinople' })
-  const vm = new VM({ common })
+  const vm = await VM.create({ common })
   const code = '3460008080F560005260206000F3'
   /*
       code:             remarks: (top of the stack is at the zero index)
@@ -85,8 +85,10 @@ tape('Byzantium cannot access Constantinople opcodes', async (t) => {
     Buffer.from('00000000000000000000000000000000000000ff', 'hex')
   ) // contract address
   // setup the vm
-  const vmByzantium = new VM({ common: new Common({ chain: 'mainnet', hardfork: 'byzantium' }) })
-  const vmConstantinople = new VM({
+  const vmByzantium = await VM.create({
+    common: new Common({ chain: 'mainnet', hardfork: 'byzantium' }),
+  })
+  const vmConstantinople = await VM.create({
     common: new Common({ chain: 'mainnet', hardfork: 'constantinople' }),
   })
   const code = '600160011B00'
@@ -131,8 +133,8 @@ tape('Ensure that precompile activation creates non-empty accounts', async (t) =
   ) // contract address
   // setup the vm
   const common = new Common({ chain: 'mainnet', hardfork: 'istanbul' })
-  const vmNotActivated = new VM({ common: common })
-  const vmActivated = new VM({ common: common, activatePrecompiles: true })
+  const vmNotActivated = await VM.create({ common: common })
+  const vmActivated = await VM.create({ common: common, activatePrecompiles: true })
   const code = '6000808080347300000000000000000000000000000000000000045AF100'
   /*
       idea: call the Identity precompile with nonzero value in order to trigger "callNewAccount" for the non-activated VM and do not deduct this
@@ -177,7 +179,7 @@ tape('Ensure that Istanbul sstoreCleanRefundEIP2200 gas is applied correctly', a
   const address = new Address(Buffer.from('00000000000000000000000000000000000000ff', 'hex'))
   // setup the vm
   const common = new Common({ chain: 'mainnet', hardfork: 'istanbul' })
-  const vm = new VM({ common: common })
+  const vm = await VM.create({ common: common })
   const code = '61000260005561000160005500'
   /*
       idea: store the original value in the storage slot, except it is now a 1-length buffer instead of a 32-length buffer

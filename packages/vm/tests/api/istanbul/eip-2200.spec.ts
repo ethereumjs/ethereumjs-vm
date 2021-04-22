@@ -41,7 +41,7 @@ tape('Istanbul: EIP-2200', async (t) => {
     const key = new BN(0).toArrayLike(Buffer, 'be', 32)
     for (const testCase of testCases) {
       const common = new Common({ chain: 'mainnet', hardfork: 'istanbul' })
-      const vm = new VM({ common })
+      const vm = await VM.create({ common })
 
       const account = createAccount(new BN(0), new BN(0))
       await vm.stateManager.putAccount(addr, account)

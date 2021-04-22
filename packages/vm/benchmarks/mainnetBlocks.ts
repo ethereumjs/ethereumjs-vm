@@ -35,7 +35,7 @@ export async function mainnetBlocks(suite?: Benchmark.Suite, numSamples?: number
 
     const stateManager = await getPreState(preState, common)
     const blockchain = getBlockchain(blockhashes) as any
-    const vm = new VM({ stateManager, common, blockchain })
+    const vm = await VM.create({ stateManager, common, blockchain })
 
     if (suite) {
       suite.add(`Block ${blockNumber}`, async () => {

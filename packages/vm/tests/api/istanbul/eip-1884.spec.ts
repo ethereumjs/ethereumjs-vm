@@ -24,7 +24,7 @@ tape('Istanbul: EIP-1884', async (t) => {
     for (const testCase of testCases) {
       const { chain, hardfork } = testCase
       const common = new Common({ chain, hardfork })
-      const vm = new VM({ common })
+      const vm = await VM.create({ common })
 
       const balance = testCase.selfbalance
         ? new BN(Buffer.from(testCase.selfbalance.slice(2), 'hex'))

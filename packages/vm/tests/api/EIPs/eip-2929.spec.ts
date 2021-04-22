@@ -17,7 +17,7 @@ tape('EIP 2929: gas cost tests', (t) => {
   const runTest = async function (test: any, st: tape.Test) {
     let i = 0
     let currentGas = initialGas
-    const vm = new VM({ common })
+    const vm = await VM.create({ common })
 
     vm.on('step', function (step: any) {
       const gasUsed = currentGas.sub(step.gasLeft)
@@ -75,7 +75,7 @@ tape('EIP 2929: gas cost tests', (t) => {
     )
 
     const common = new Common({ chain: 'mainnet', hardfork: 'berlin', eips: [2929] })
-    const vm = new VM({ common })
+    const vm = await VM.create({ common })
 
     await vm.stateManager.putContractCode(contractAddress, Buffer.from(code, 'hex')) // setup the contract code
 
