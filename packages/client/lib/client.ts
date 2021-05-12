@@ -2,7 +2,7 @@ import events from 'events'
 import { LevelUp } from 'levelup'
 import { MultiaddrLike } from './types'
 import { Config } from './config'
-import { FullEthereumService, LightEthereumService } from './service'
+import { FullEthereumService, LightEthereumService, BeamEthereumService } from './service'
 
 export interface EthereumClientOptions {
   /* Client configuration */
@@ -40,7 +40,7 @@ export interface EthereumClientOptions {
 export default class EthereumClient extends events.EventEmitter {
   public config: Config
 
-  public services: (FullEthereumService | LightEthereumService)[]
+  public services: (FullEthereumService | LightEthereumService | BeamEthereumService)[]
 
   public opened: boolean
   public started: boolean
@@ -54,18 +54,36 @@ export default class EthereumClient extends events.EventEmitter {
 
     this.config = options.config
 
-    this.services = [
-      this.config.syncmode === 'full'
-        ? new FullEthereumService({
+    switch (this.config.syncmode) {
+      case 'full':
+        this.services = [
+          new FullEthereumService({
             config: this.config,
             chainDB: options.chainDB,
             stateDB: options.stateDB,
-          })
-        : new LightEthereumService({
+          }),
+        ]
+        break
+      case 'light':
+        this.services = [
+          new LightEthereumService({
             config: this.config,
             chainDB: options.chainDB,
           }),
-    ]
+        ]
+        break
+      case 'beam':
+        this.services = [
+          new BeamEthereumService({
+            config: this.config,
+            chainDB: options.chainDB,
+            stateDB: options.stateDB,
+          }),
+        ]
+        break
+      default:
+        throw new Error(`${this.config.syncmode} is not a supported sync mode`)
+    }
     this.opened = false
     this.started = false
   }

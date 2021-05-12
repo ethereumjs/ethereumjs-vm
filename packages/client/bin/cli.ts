@@ -29,7 +29,7 @@ const args = require('yargs')
     },
     syncmode: {
       describe: 'Blockchain sync mode',
-      choices: ['light', 'full'],
+      choices: ['light', 'full', 'beam'],
       default: Config.SYNCMODE_DEFAULT,
     },
     lightserv: {

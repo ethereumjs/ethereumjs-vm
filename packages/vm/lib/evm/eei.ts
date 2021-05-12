@@ -312,7 +312,7 @@ export default class EEI {
    * @param num - Number of block
    */
   async getBlockHash(num: BN): Promise<BN> {
-    const block = await this._env.blockchain.getBlock(num)
+    const block = await this._env.blockchain.getHeader(num)
     return new BN(block.hash())
   }
 

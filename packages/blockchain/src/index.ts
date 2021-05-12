@@ -47,6 +47,11 @@ export interface BlockchainInterface {
   getBlock(blockId: Buffer | number | BN): Promise<Block | null>
 
   /**
+   * Returns a header by its hash or number.
+   */
+  getHeader(headerId: Buffer | number | BN): Promise<BlockHeader>
+
+  /**
    * Iterates through blocks starting at the specified iterator head and calls
    * the onBlock function on each block.
    *
@@ -1003,6 +1008,27 @@ export default class Blockchain implements BlockchainInterface {
     // know it is OK if we call it from the iterator... (runBlock)
     await this.initPromise
     return await this._getBlock(blockId)
+  }
+
+  /**
+   * Gets a block header by its hash or block number
+   * @param headerId - The header's hash or number.
+   */
+  async getHeader(headerId: Buffer | number | BN): Promise<BlockHeader> {
+    await this.initPromise
+    let number
+    let hash
+    if (Buffer.isBuffer(headerId)) {
+      hash = headerId
+      number = await this.dbManager.hashToNumber(hash)
+    } else if (BN.isBN(headerId)) {
+      number = headerId
+      hash = await this.dbManager.numberToHash(number)
+    } else {
+      number = new BN(headerId)
+      hash = await this.dbManager.numberToHash(number)
+    }
+    return await this.dbManager.getHeader(hash, number)
   }
 
   /**

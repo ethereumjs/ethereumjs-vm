@@ -1,11 +1,11 @@
 import { EthereumService, EthereumServiceOptions } from './ethereumservice'
-import { FullSynchronizer } from '../sync/fullsync'
 import { EthProtocol } from '../net/protocol/ethprotocol'
 import { LesProtocol } from '../net/protocol/lesprotocol'
 import { Peer } from '../net/peer/peer'
 import { Protocol } from '../net/protocol'
+import { BeamSynchronizer } from '../sync/beamsync'
 
-interface FullEthereumServiceOptions extends EthereumServiceOptions {
+interface BeamEthereumServiceOptions extends EthereumServiceOptions {
   /* Serve LES requests (default: false) */
   lightserv?: boolean
 }
@@ -14,22 +14,21 @@ interface FullEthereumServiceOptions extends EthereumServiceOptions {
  * Ethereum service
  * @memberof module:service
  */
-export class FullEthereumService extends EthereumService {
-  public synchronizer: FullSynchronizer
+export class BeamEthereumService extends EthereumService {
+  public synchronizer: BeamSynchronizer
   public lightserv: boolean
 
   /**
    * Create new ETH service
    * @param {FullEthereumServiceOptions}
    */
-  constructor(options: FullEthereumServiceOptions) {
+  constructor(options: BeamEthereumServiceOptions) {
     super(options)
 
     this.lightserv = options.lightserv ?? false
 
-    this.config.logger.info('Full sync mode')
-
-    this.synchronizer = new FullSynchronizer({
+    this.config.logger.info('Beam sync mode')
+    this.synchronizer = new BeamSynchronizer({
       config: this.config,
       pool: this.pool,
       chain: this.chain,

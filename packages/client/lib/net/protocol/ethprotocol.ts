@@ -26,6 +26,7 @@ type GetBlockHeadersOpts = {
 export interface EthProtocolMethods {
   getBlockHeaders: (opts: GetBlockHeadersOpts) => Promise<BlockHeader[]>
   getBlockBodies: (hashes: Buffer[]) => Promise<BlockBodyBuffer[]>
+  getNodeData: (hashes: Buffer[]) => Promise<Buffer[]>
 }
 
 /**
@@ -80,6 +81,15 @@ export class EthProtocol extends Protocol {
     {
       name: 'BlockBodies',
       code: 0x06,
+    },
+    {
+      name: 'GetNodeData',
+      code: 0x0d,
+      response: 0x0e,
+    },
+    {
+      name: 'NodeData',
+      code: 0x0e,
     },
   ]
 

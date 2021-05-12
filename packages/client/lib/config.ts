@@ -299,8 +299,13 @@ export class Config {
    * Returns the directory for storing the client state data
    * based selected chain (subdirectory of 'datadir')
    */
-  getStateDataDirectory(): string {
-    return `${this.getNetworkDirectory()}/state`
+  getStateDataDirectory(mode?: string): string {
+    // TODO: do not construct DB instance in CLI, instead create it when necessary (?)
+    if (mode === 'beamsync') {
+      return `${this.getNetworkDirectory()}/beamstate`
+    } else {
+      return `${this.getNetworkDirectory()}/state`
+    }
   }
 
   /**

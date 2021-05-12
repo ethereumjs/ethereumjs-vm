@@ -111,6 +111,31 @@ tape('blockchain test', (t) => {
     st.end()
   })
 
+  t.test('should return headers', async (st) => {
+    const blockchain = new Blockchain({
+      validateBlocks: true,
+      validateConsensus: false,
+    })
+    const genesis = await blockchain.getBlock(new BN(0))
+    const header = BlockHeader.fromHeaderData(
+      {
+        gasLimit: genesis.header.gasLimit,
+        parentHash: genesis.hash(),
+        number: new BN(1),
+        timestamp: genesis.header.timestamp.addn(1),
+      },
+      { calcDifficultyFromHeader: genesis.header }
+    )
+    await blockchain.putHeader(header)
+    const BNresult = await blockchain.getHeader(new BN(1))
+    st.ok(BNresult.hash().equals(header.hash()))
+    const numberResult = await blockchain.getHeader(1)
+    st.ok(numberResult.hash().equals(header.hash()))
+    const BufferResult = await blockchain.getHeader(header.hash())
+    st.ok(BufferResult.hash().equals(header.hash()))
+    st.end()
+  })
+
   t.test('should add 10 blocks, one at a time', async (st) => {
     const blocks: Block[] = []
     const gasLimit = 8000000

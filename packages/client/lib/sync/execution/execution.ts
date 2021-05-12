@@ -2,6 +2,7 @@ import { EventEmitter } from 'events'
 import { Config } from '../../config'
 import { LevelUp } from 'levelup'
 import { Chain } from '../../blockchain'
+import { SecureTrie } from 'merkle-patricia-tree'
 
 export interface ExecutionOptions {
   /* Config */
@@ -12,6 +13,9 @@ export interface ExecutionOptions {
 
   /** Chain */
   chain: Chain
+
+  /** Optional custom Trie */
+  trie?: SecureTrie
 }
 
 export abstract class Execution extends EventEmitter {
