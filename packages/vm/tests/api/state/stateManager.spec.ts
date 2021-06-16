@@ -514,6 +514,29 @@ tape('StateManager - Contract storage', (tester) => {
     t.ok(contractValue.equals(expect), 'trailing zeros are not stripped')
     t.end()
   })
+
+  it('should get and verify EIP 1178 proofs', async (t) => {
+    const address = Address.zero()
+    const key = zeros(32)
+    const value = Buffer.from('0000aabb00', 'hex')
+    const code = Buffer.from('6000', 'hex')
+    const stateManager = new DefaultStateManager()
+    await stateManager.putContractStorage(address, key, value)
+    await stateManager.putContractCode(address, code)
+    const account = await stateManager.getAccount(address)
+    account.balance = new BN(1)
+    account.nonce = new BN(2)
+    await stateManager.putAccount(address, account)
+
+    const address2 = new Address(Buffer.from('20'.repeat(20), 'hex'))
+    const account2 = await stateManager.getAccount(address2)
+    account.nonce = new BN(2)
+    await stateManager.putAccount(address2, account2)
+
+    const proof = await stateManager.getProof(address, [key])
+    console.log(proof)
+    t.end()
+  })
 })
 
 tape('StateManager - generateAccessList', (tester) => {

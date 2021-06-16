@@ -9,6 +9,10 @@ import {
   keccak256,
   KECCAK256_NULL,
   unpadBuffer,
+  PrefixedHexString,
+  bnToHex,
+  bufferToHex,
+  rlp,
 } from 'ethereumjs-util'
 import { encode, decode } from 'rlp'
 import Common from '@ethereumjs/common'
@@ -22,6 +26,21 @@ import { AccessList, AccessListItem } from '@ethereumjs/tx'
 const debug = createDebugLogger('vm:state')
 
 type AddressHex = string
+
+type StorageProof = {
+  key: PrefixedHexString
+  proof: PrefixedHexString[]
+  value: PrefixedHexString
+}
+
+type Proof = {
+  balance: PrefixedHexString
+  codeHash: PrefixedHexString
+  nonce: PrefixedHexString
+  storageHash: PrefixedHexString
+  accountProof: PrefixedHexString[]
+  storageProof: StorageProof[]
+}
 
 /**
  * Options for constructing a [[StateManager]].
@@ -470,6 +489,81 @@ export default class DefaultStateManager implements StateManager {
       await this._cache.flush()
       this._clearOriginalStorageCache()
     }
+  }
+
+  /**
+   * Get an EIP-1186 proof
+   * @param address - address to get proof of
+   * @param storageSlots - storage slots to get proof of
+   */
+  async getProof(address: Address, storageSlots: Buffer[] = []): Promise<Proof> {
+    const account = await this.getAccount(address)
+    const accountProof: PrefixedHexString[] = (
+      await Trie.createProof(this._trie, address.buf)
+    ).map((e: Buffer) => bufferToHex(e))
+    const storageProof: StorageProof[] = []
+    const storageTrie = await this._getStorageTrie(address)
+
+    await Promise.all(
+      storageSlots.map(async (storageKey: Buffer) => {
+        const proof = (await Trie.createProof(storageTrie, storageKey)).map((e: Buffer) =>
+          bufferToHex(e)
+        )
+        const proofItem: StorageProof = {
+          key: bufferToHex(storageKey),
+          value: bufferToHex(await this.getContractStorage(address, storageKey)),
+          proof,
+        }
+        storageProof.push(proofItem)
+      })
+    )
+
+    const returnValue: Proof = {
+      balance: bnToHex(account.balance),
+      codeHash: bufferToHex(account.codeHash),
+      nonce: bnToHex(account.nonce),
+      storageHash: bufferToHex(account.stateRoot),
+      accountProof,
+      storageProof,
+    }
+    return returnValue
+  }
+
+  /**
+   * Verify an EIP-1186 proof. Throws if proof is invalid, otherwise returns true
+   * @param proof - The Proof to prove
+   */
+  async verifyProof(proof: Proof): Promise<boolean> {
+    const rootHash = rlp.decode(toBuffer(proof.accountProof[0]))
+    const key = keccak256(toBuffer(proof.accountProof[proof.accountProof.length - 1]))
+    const accountProof = proof.accountProof.map((rlpString: PrefixedHexString) =>
+      toBuffer(rlpString)
+    )
+
+    // This returns the account if the trie is OK, verify that it matches the reported account
+    await Trie.verifyProof(rootHash, key, accountProof)
+
+    const storageRoot = toBuffer(proof.storageHash)
+
+    /* TODO verify that value matches the account */
+    await Promise.all(
+      proof.storageProof.map(async (stProof: StorageProof) => {
+        const storageProof = stProof.proof.map((value: PrefixedHexString) => toBuffer(value))
+        const storageValue = toBuffer(stProof.value)
+        const storageKey = toBuffer(stProof.key)
+
+        // TODO figure out in what case verifyProof returns null (empty trie?)
+        const reportedValue = <Buffer>await Trie.verifyProof(storageRoot, storageKey, storageProof)
+
+        if (!reportedValue.equals(storageValue)) {
+          throw 'Reported trie value does not match storage'
+        }
+      })
+    ).catch((e) => {
+      throw e
+    })
+
+    return true
   }
 
   /**
