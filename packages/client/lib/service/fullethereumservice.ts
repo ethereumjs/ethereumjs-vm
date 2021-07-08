@@ -94,6 +94,8 @@ export class FullEthereumService extends EthereumService {
       peer.eth!.send('BlockBodies', bodies)
     } else if (message.name === 'NewBlockHashes') {
       await this.synchronizer.announced(message.data, peer)
+    } else if (message.name === 'NewPooledTransactionHashes') {
+      this.txPool.announced(message.data, peer)
     }
   }
 
