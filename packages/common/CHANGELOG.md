@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 (modification: no type change headlines) and this project adheres to
 [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## UNRELEASED
+
+- Fixed `hardforkBlockBN()` to correctly return null for unscheduled hardforks, PR [#1329](https://github.com/ethereumjs/ethereumjs-monorepo/pull/1329)
+
 ## 2.3.1 - 2021-06-11
 
 Small feature release.

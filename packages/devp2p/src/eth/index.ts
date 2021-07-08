@@ -45,7 +45,7 @@ export class ETH extends EventEmitter {
       this._hardfork = c.hardfork() ? c.hardfork() : this._hardfork
       // Set latestBlock minimally to start block of fork to have some more
       // accurate basis if no latestBlock is provided along status send
-      this._latestBlock = c.hardforkBlockBN(this._hardfork)
+      this._latestBlock = c.hardforkBlockBN(this._hardfork) ?? new BN(0)
       this._forkHash = c.forkHash(this._hardfork)
       // Next fork block number or 0 if none available
       this._nextForkBlock = c.nextHardforkBlockBN(this._hardfork) ?? new BN(0)

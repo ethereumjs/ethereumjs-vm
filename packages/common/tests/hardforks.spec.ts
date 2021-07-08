@@ -1,5 +1,6 @@
 import tape from 'tape'
-import Common from '../src/'
+import { BN } from '../../util/dist'
+import Common, { Chain, Hardfork } from '../src'
 
 tape('[Common]: Hardfork logic', function (t: tape.Test) {
   t.test('Hardfork access', function (st: tape.Test) {
@@ -229,6 +230,23 @@ tape('[Common]: Hardfork logic', function (t: tape.Test) {
 
     msg = 'Ropsten, byzantium (set), 1699999 -> false'
     st.equal(c.hardforkIsActiveOnBlock(null, 1699999), false, msg)
+
+    st.end()
+  })
+
+  t.test('hardforkBlock() / hardforkBlockBN()', function (st: tape.Test) {
+    const c = new Common({ chain: Chain.Mainnet })
+
+    let msg = 'should return correct value'
+    st.equal(c.hardforkBlock(Hardfork.Berlin), 12244000, msg)
+    st.ok(c.hardforkBlockBN(Hardfork.Berlin)!.eq(new BN(12244000)), msg)
+
+    msg = 'should return null for unscheduled hardfork'
+    st.equal(c.hardforkBlock(Hardfork.London), null, msg)
+    st.equal(c.hardforkBlockBN(Hardfork.London), null, msg)
+    st.equal(c.nextHardforkBlockBN(Hardfork.London), null, msg)
+    // developer note: when London mainnet harfork block is set,
+    // can update this test to next hardfork `Hardfork.Shanghai`
 
     st.end()
   })
