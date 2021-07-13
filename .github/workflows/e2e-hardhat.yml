@@ -1,0 +1,47 @@
+name: E2E Hardhat Tests
+on:
+  push:
+    branches: [ hardhart-e2e ]
+env:
+  cwd: ${{github.workspace}}
+
+concurrency:
+  group: ${{github.workflow}}
+  cancel-in-progress: true
+
+jobs:
+  virtual-npm-publish:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [15]
+    steps:
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v1
+        with:
+          node-version: ${{ matrix.node-version }}
+      - uses: actions/checkout@v2
+        with:
+          submodules: recursive
+
+      # Installs all dependencies, bootstrapping everything.
+      - run: npm install
+
+      # Publishes all packages to a virtual npm registry after giving each a minor version bump
+      - name: Publish to virtual registry
+        run: npm run e2e:publish
+
+      - name: Generate e2e resolutions
+        run: |
+          npm run e2e:resolutions
+
+      # Clones repo and injects fake dependencies
+      - name: Build hardhat repo with new EthereumJS dependencies
+        run: |
+          git clone https://github.com/nomiclabs/hardhat.git
+          node scripts/inject-e2e-dependencies-resolution.js
+          cd hardhat
+          yarn
+          cd packages/e2e
+          yarn test
+          
