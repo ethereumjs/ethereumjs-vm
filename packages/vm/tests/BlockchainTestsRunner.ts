@@ -1,5 +1,5 @@
 import * as tape from 'tape'
-import { addHexPrefix, BN, toBuffer } from 'ethereumjs-util'
+import { addHexPrefix, BN, toBuffer, rlp } from 'ethereumjs-util'
 import { SecureTrie as Trie } from 'merkle-patricia-tree'
 import { Block } from '@ethereumjs/block'
 import Blockchain from '@ethereumjs/blockchain'
@@ -102,12 +102,12 @@ export default async function runBlockchainTest(options: any, testData: any, t: 
       ? raw[paramFork]
       : raw[paramAll1] || raw[paramAll2] || raw.blockHeader == undefined
 
-    // here we convert the rlp to block only to extract the number
-    // we have to do this again later because the common might run on a new hardfork
+    // Here we decode the rlp to extract the block number
+    // The block library cannot be used, as this throws on certain EIP1559 blocks when trying to convert
     try {
       const blockRlp = Buffer.from(raw.rlp.slice(2), 'hex')
-      const block = Block.fromRLPSerializedBlock(blockRlp, { common })
-      currentBlock = block.header.number
+      const decodedRLP: any = rlp.decode(blockRlp)
+      currentBlock = new BN(decodedRLP[0][8])
     } catch (e) {
       await handleError(e, expectException)
       continue

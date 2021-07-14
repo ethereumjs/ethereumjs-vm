@@ -201,6 +201,13 @@ const transitionNetworks: any = {
     finalSupportedFork: 'tangerineWhistle',
     startFork: 'homestead',
   },
+  BerlinToLondonAt5: {
+    berlin: 0,
+    london: 5,
+    dao: null,
+    finalSupportedFork: 'london',
+    startFork: 'berlin',
+  },
 }
 
 const testLegacy: any = {
@@ -219,6 +226,7 @@ const testLegacy: any = {
   FrontierToHomesteadAt5: false,
   HomesteadToDaoAt5: false,
   HomesteadToEIP150At5: false,
+  BerlinToLondonAt5: false,
 }
 /**
  * Returns an array of dirs to run tests on
@@ -341,6 +349,7 @@ const expectedTestsFull: any = {
     FrontierToHomesteadAt5: 12,
     HomesteadToDaoAt5: 18,
     HomesteadToEIP150At5: 3,
+    BerlinToLondonAt5: 0,
   },
   GeneralStateTests: {
     Chainstart: 896,
@@ -359,6 +368,7 @@ const expectedTestsFull: any = {
     FrontierToHomesteadAt5: 0,
     HomesteadToDaoAt5: 0,
     HomesteadToEIP150At5: 0,
+    BerlinToLondonAt5: 0,
   },
 }
 /**
