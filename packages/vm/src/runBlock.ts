@@ -58,6 +58,10 @@ export interface RunBlockOpts {
    * If true, skips the balance check
    */
   skipBalance?: boolean
+  /**
+   * If true, returns the witness hashes for the block. (default: false)
+   */
+  reportWitness?: boolean
 }
 
 /**
@@ -88,6 +92,10 @@ export interface RunBlockResult {
    * The receipt root after executing the block
    */
   receiptRoot: Buffer
+  /**
+   * The witness hashes for the block
+   */
+  witnessHashes?: string[]
 }
 
 export interface AfterBlockEvent extends RunBlockResult {
@@ -102,7 +110,8 @@ export default async function runBlock(this: VM, opts: RunBlockOpts): Promise<Ru
   const state = this.stateManager
   const { root } = opts
   let { block } = opts
-  const generateFields = !!opts.generate
+  const generateFields = opts.generate ?? false
+  const reportWitness = opts.reportWitness ?? false
 
   /**
    * The `beforeBlock` event.
@@ -150,6 +159,18 @@ export default async function runBlock(this: VM, opts: RunBlockOpts): Promise<Ru
   await state.checkpoint()
   if (this.DEBUG) {
     debug(`block checkpoint`)
+  }
+
+  const witnessHashes: string[] = []
+  if (reportWitness) {
+    const trie = (this.stateManager as any)._trie
+    const getFunc = trie.db.get.bind(trie.db)
+    trie.db.get = async (key: Buffer) => {
+      if (!witnessHashes.includes(key.toString('hex'))) {
+        witnessHashes.push(key.toString('hex'))
+      }
+      return getFunc(key)
+    }
   }
 
   let result
@@ -240,6 +261,10 @@ export default async function runBlock(this: VM, opts: RunBlockOpts): Promise<Ru
     gasUsed: result.gasUsed,
     logsBloom: result.bloom.bitvector,
     receiptRoot: result.receiptRoot,
+  }
+
+  if (reportWitness) {
+    results.witnessHashes = witnessHashes
   }
 
   const afterBlockEvent: AfterBlockEvent = { ...results, block }

@@ -114,11 +114,15 @@ export function twoPeerMsgExchange(
   const rlpxs = initTwoPeerRLPXSetup(null, capabilities, common)
   rlpxs[0].on('peer:added', function (peer: any) {
     const protocol = peer.getProtocols()[0]
-    protocol.sendStatus(opts.status0) // (1 ->)
-
-    protocol.once('status', () => {
+    if (protocol.sendStatus) {
+      protocol.sendStatus(opts.status0) // (1 ->)
+      protocol.once('status', () => {
+        if (opts.onOnceStatus0) opts.onOnceStatus0(rlpxs, protocol)
+      }) // (-> 2)
+    } else {
+      // for protocol with no status message (i.e. wit/0)
       if (opts.onOnceStatus0) opts.onOnceStatus0(rlpxs, protocol)
-    }) // (-> 2)
+    }
     protocol.on('message', async (code: any, payload: any) => {
       if (opts.onOnMsg0) opts.onOnMsg0(rlpxs, protocol, code, payload)
     })

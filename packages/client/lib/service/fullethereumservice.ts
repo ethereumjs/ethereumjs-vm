@@ -2,6 +2,7 @@ import { EthereumService, EthereumServiceOptions } from './ethereumservice'
 import { FullSynchronizer } from '../sync/fullsync'
 import { EthProtocol } from '../net/protocol/ethprotocol'
 import { LesProtocol } from '../net/protocol/lesprotocol'
+import { WitProtocol } from '../net/protocol/witprotocol'
 import { Peer } from '../net/peer/peer'
 import { Protocol } from '../net/protocol'
 
@@ -60,6 +61,14 @@ export class FullEthereumService extends EthereumService {
         })
       )
     }
+    if (this.config.wit) {
+      protocols.push(
+        new WitProtocol({
+          config: this.config,
+          chain: this.chain,
+        })
+      )
+    }
     return protocols
   }
 
@@ -72,8 +81,12 @@ export class FullEthereumService extends EthereumService {
   async handle(message: any, protocol: string, peer: Peer): Promise<any> {
     if (protocol === 'eth') {
       return this.handleEth(message, peer)
-    } else {
+    } else if (protocol === 'les') {
       return this.handleLes(message, peer)
+    } else if (protocol === 'wit') {
+      return this.handleWit(message, peer)
+    } else {
+      throw new Error(`Unknown protocol: ${protocol}`)
     }
   }
 
@@ -113,6 +126,47 @@ export class FullEthereumService extends EthereumService {
         const headers: any = await this.chain.getHeaders(block, max, skip, reverse)
         peer.les!.send('BlockHeaders', { reqId, bv, headers })
       }
+    }
+  }
+
+  /**
+   * Handles incoming WIT message from connected peer
+   * @param message message object
+   * @param peer peer
+   */
+  async handleWit(message: any, peer: Peer): Promise<void> {
+    if (message.name === 'GetBlockWitnessHashes' && this.config.wit) {
+      const { reqId, blockHash } = message.data
+      const block = await this.chain.getBlock(blockHash)
+      const parentBlock = await this.chain.getBlock(block.header.parentHash)
+
+      let witnessHashes: string[] = []
+
+      // wit/0 spec notes:
+      // * Nodes must always respond to the query.
+      // * If the node does not have the requested block, it must return an empty reply.
+
+      // TODO getBlock should return Promise<Block | null>
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      if (block && parentBlock) {
+        // copy the vm as to not cause any changes during runBlock
+        const vm = this.synchronizer.execution.vm.copy()
+
+        try {
+          const result = await vm.runBlock({
+            block,
+            root: parentBlock.header.stateRoot,
+            reportWitness: true,
+          })
+          if (result.witnessHashes) {
+            witnessHashes = result.witnessHashes
+          }
+        } catch (error) {
+          // if this fails, follow spec by returning witnessHashes as empty
+        }
+      }
+
+      peer.wit!.send('BlockWitnessHashes', { reqId, witnessHashes })
     }
   }
 }

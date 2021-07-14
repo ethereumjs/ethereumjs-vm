@@ -70,6 +70,10 @@ export class Protocol extends EventEmitter {
    * @return {Promise}
    */
   async handshake(sender: Sender) {
+    if (this.name === 'wit') {
+      // wit/0 does not have a Status message defined yet
+      return
+    }
     const status = this.encodeStatus()
     sender.sendStatus(status)
     return new Promise((resolve, reject) => {

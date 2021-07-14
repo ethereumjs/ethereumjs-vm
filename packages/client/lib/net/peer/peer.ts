@@ -4,6 +4,7 @@ import {
   BoundProtocol,
   EthProtocolMethods,
   LesProtocolMethods,
+  WitProtocolMethods,
   Sender,
 } from '../protocol'
 import { Server } from '../server'
@@ -58,6 +59,7 @@ export class Peer extends events.EventEmitter {
   // Dynamically bound protocol properties
   public eth: (BoundProtocol & EthProtocolMethods) | undefined
   public les: (BoundProtocol & LesProtocolMethods) | undefined
+  public wit: (BoundProtocol & WitProtocolMethods) | undefined
 
   /**
    * Create new peer

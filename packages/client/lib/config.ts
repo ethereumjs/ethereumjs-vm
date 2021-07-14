@@ -175,6 +175,13 @@ export interface ConfigOptions {
    * Default: `false` for testnets, true for mainnet
    */
   discV4?: boolean
+
+  /**
+   * Use the witness protocol on top of RLPx
+   *
+   * Default: `false` for testnets, true for mainnet
+   */
+  wit?: boolean
 }
 
 export class Config {
@@ -215,6 +222,7 @@ export class Config {
   public readonly debugCode: boolean
   public readonly discDns: boolean
   public readonly discV4: boolean
+  public readonly wit: boolean
 
   public readonly chainCommon: Common
   public readonly execCommon: Common
@@ -240,6 +248,7 @@ export class Config {
     this.maxPeers = options.maxPeers ?? Config.MAXPEERS_DEFAULT
     this.dnsAddr = options.dnsAddr ?? Config.DNSADDR_DEFAULT
     this.debugCode = options.debugCode ?? Config.DEBUGCODE_DEFAULT
+    this.wit = options.wit ?? false
 
     // TODO: map chainParams (and lib/util.parseParams) to new Common format
     const common =
