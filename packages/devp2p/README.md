@@ -1,4 +1,4 @@
-# ethereumjs-devp2p
+# @ethereumjs/devp2p
 
 [![NPM Status][devp2p-npm-badge]][devp2p-npm-link]
 [![GitHub Issues][devp2p-issues-badge]][devp2p-issues-link]
@@ -428,7 +428,7 @@ MIT
 [devp2p-npm-link]: https://www.npmjs.org/package/ethereumjs-devp2p
 [devp2p-issues-badge]: https://img.shields.io/github/issues/ethereumjs/ethereumjs-monorepo/package:%20devp2p?label=issues
 [devp2p-issues-link]: https://github.com/ethereumjs/ethereumjs-monorepo/issues?q=is%3Aopen+is%3Aissue+label%3A"package%3A+devp2p"
-[devp2p-actions-badge]: https://github.com/ethereumjs/ethereumjs-monorepo/workflows/Devp2p%20Test/badge.svg
-[devp2p-actions-link]: https://github.com/ethereumjs/ethereumjs-monorepo/actions?query=workflow%3A%22Devp2p+Test%22
+[devp2p-actions-badge]: https://github.com/ethereumjs/ethereumjs-monorepo/workflows/Devp2p/badge.svg
+[devp2p-actions-link]: https://github.com/ethereumjs/ethereumjs-monorepo/actions?query=workflow%3A%22Devp2p%22
 [devp2p-coverage-badge]: https://codecov.io/gh/ethereumjs/ethereumjs-monorepo/branch/master/graph/badge.svg?flag=devp2p
 [devp2p-coverage-link]: https://codecov.io/gh/ethereumjs/ethereumjs-monorepo/tree/master/packages/devp2p
