@@ -3,6 +3,8 @@ import td from 'testdouble'
 import { EventEmitter } from 'events'
 import { Config } from '../../lib/config'
 import { RlpxServer } from '../../lib/net/server'
+import { Event } from '../../lib/types'
+import MockPeer from '../integration/mocks/mockpeer'
 
 tape('[PeerPool]', async (t) => {
   const Peer = td.replace('../../lib/net/peer/peer', function (this: any, id: string) {
@@ -19,18 +21,26 @@ tape('[PeerPool]', async (t) => {
   })
 
   t.test('should open/close', async (t) => {
+    t.plan(3)
     const server = new EventEmitter()
     const config = new Config({ servers: [server as RlpxServer] })
     const pool = new PeerPool({ config })
-    pool.connected = td.func<typeof pool.connected>()
-    pool.disconnected = td.func<typeof pool.disconnected>()
-    await pool.open()
-    server.emit('connected', 'peer')
-    server.emit('disconnected', 'peer')
-    process.nextTick(() => {
-      td.verify(pool.connected('peer' as any))
-      td.verify(pool.disconnected('peer' as any))
+    const peer = new MockPeer({
+      id: 'peer',
+      location: 'abc',
+      config: config,
+      address: '0.0.0.0',
+      transport: 'udp',
     })
+    await pool.open()
+    config.events.on(Event.PEER_CONNECTED, (peer: any) => {
+      if (pool.contains(peer.id)) t.pass('peer connected')
+    })
+    config.events.on(Event.POOL_PEER_REMOVED, () => {
+      if (!pool.contains('peer')) t.pass('peer disconnected')
+    })
+    pool.add(peer)
+    pool.remove(peer)
     t.equals(await pool.open(), false, 'already opened')
     await pool.close()
     t.notOk((pool as any).opened, 'closed')
@@ -38,26 +48,18 @@ tape('[PeerPool]', async (t) => {
   })
 
   t.test('should connect/disconnect peer', (t) => {
-    t.plan(4)
+    t.plan(2)
     const peer = new EventEmitter() as any
     const config = new Config({ loglevel: 'error', transports: [] })
     const pool = new PeerPool({ config })
     ;(peer as any).id = 'abc'
     ;(peer as any).handleMessageQueue = td.func()
-    ;(pool as any).ban = td.func()
     pool.connected(peer)
-    pool.on('message', (msg: any, proto: any, p: any) => {
+    pool.config.events.on(Event.PROTOCOL_MESSAGE, (msg: any, proto: any, p: any) => {
       t.ok(msg === 'msg0' && proto === 'proto0' && p === peer, 'got message')
     })
-    pool.on('message:proto0', (msg: any, p: any) => {
-      t.ok(msg === 'msg0' && p === peer, 'got message:protocol')
-    })
-    peer.emit('message', 'msg0', 'proto0')
-    peer.emit('error', 'err0', 'proto0')
-    process.nextTick(() => {
-      td.verify(pool.ban(peer))
-      t.pass('got error')
-    })
+    config.events.emit(Event.PROTOCOL_MESSAGE, 'msg0', 'proto0', peer)
+    pool.config.events.emit(Event.PEER_ERROR, new Error('err0'), peer)
     pool.disconnected(peer)
     t.notOk((pool as any).pool.get('abc'), 'peer removed')
   })
@@ -92,8 +94,12 @@ tape('[PeerPool]', async (t) => {
     const pool = new PeerPool({ config })
     peers.forEach((p: any) => pool.add(p))
     peers.forEach((p: any) => pool.ban(p, 1000))
-    pool.on('banned', (peer: any) => t.equals(peer, peers[1], 'banned peer'))
-    pool.on('removed', (peer: any) => t.equals(peer, peers[1], 'removed peer'))
+    pool.config.events.on(Event.POOL_PEER_BANNED, (peer: any) =>
+      t.equals(peer, peers[1], 'banned peer')
+    )
+    pool.config.events.on(Event.POOL_PEER_REMOVED, (peer: any) =>
+      t.equals(peer, peers[1], 'removed peer')
+    )
     t.equals(pool.peers[0], peers[0], 'outbound peer not banned')
     t.end()
   })

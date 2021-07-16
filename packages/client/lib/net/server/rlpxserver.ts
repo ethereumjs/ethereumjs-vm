@@ -1,6 +1,7 @@
 import { RLPx as Devp2pRLPx, Peer as Devp2pRLPxPeer, DPT as Devp2pDPT } from '@ethereumjs/devp2p'
 import { RlpxPeer } from '../peer/rlpxpeer'
 import { Server, ServerOptions } from './server'
+import { Event } from '../../types'
 
 export interface RlpxServerOptions extends ServerOptions {
   /* List of supported clients */
@@ -190,15 +191,11 @@ export class RlpxServer extends Server {
    * @param  {Peer} peer
    * @emits  error
    */
-  error(error: Error, peer?: RlpxPeer) {
+  error(error: Error) {
     if (ignoredErrors.test(error.message)) {
       return
     }
-    if (peer) {
-      peer.emit('error', error)
-    } else {
-      this.emit('error', error)
-    }
+    this.config.events.emit(Event.SERVER_ERROR, error, this)
   }
 
   /**
@@ -263,7 +260,7 @@ export class RlpxServer extends Server {
           await peer.accept(rlpxPeer, this)
           this.peers.set(peer.id, peer)
           this.config.logger.debug(`Peer connected: ${peer}`)
-          this.emit('connected', peer)
+          this.config.events.emit(Event.PEER_CONNECTED, peer)
         } catch (error) {
           this.error(error)
         }
@@ -277,7 +274,7 @@ export class RlpxServer extends Server {
           this.config.logger.debug(
             `Peer disconnected (${rlpxPeer.getDisconnectPrefix(reason)}): ${peer}`
           )
-          this.emit('disconnected', peer)
+          this.config.events.emit(Event.PEER_DISCONNECTED, peer)
         }
       })
 
@@ -286,15 +283,13 @@ export class RlpxServer extends Server {
         if (!peerId) {
           return this.error(error)
         }
-        const id = peerId.toString('hex')
-        const peer = this.peers.get(id)
-        this.error(error, peer)
+        this.error(error)
       })
 
       this.rlpx.on('error', (e: Error) => this.error(e))
 
       this.rlpx.on('listening', () => {
-        this.emit('listening', {
+        this.config.events.emit(Event.SERVER_LISTENING, {
           transport: this.name,
           url: this.getRlpxInfo().enode,
         })

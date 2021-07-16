@@ -5,6 +5,7 @@ import { Synchronizer, SynchronizerOptions } from './sync'
 import { BlockFetcher } from './fetcher'
 import { Block } from '@ethereumjs/block'
 import { VMExecution } from './execution/vmexecution'
+import { Event } from '../types'
 
 /**
  * Implements an ethereum full sync synchronizer
@@ -25,17 +26,13 @@ export class FullSynchronizer extends Synchronizer {
       chain: options.chain,
     })
 
-    const self = this
-    this.execution.on('error', async (error: Error) => {
-      self.emit('error', error)
-      await self.stop()
+    this.config.events.on(Event.SYNC_EXECUTION_VM_ERROR, async () => {
+      await this.stop()
     })
 
-    this.chain.on('updated', async function () {
-      // for some reason, if we use .on('updated', this.runBlocks)
-      // it runs in the context of the Chain and not in the FullSync context..?
-      if (self.running) {
-        await self.execution.run()
+    this.config.events.on(Event.CHAIN_UPDATED, async () => {
+      if (this.running) {
+        await this.execution.run()
       }
     })
     // eslint-disable-next-line @typescript-eslint/no-floating-promises
@@ -118,24 +115,20 @@ export class FullSynchronizer extends Synchronizer {
       first,
       count,
     })
-    this.blockFetcher
-      .on('error', (error: Error) => {
-        this.emit('error', error)
-      })
-      .on('fetched', (blocks: Block[]) => {
-        const first = new BN(blocks[0].header.number)
-        const hash = short(blocks[0].hash())
-        const baseFeeAdd = this.config.chainCommon.gteHardfork('london')
-          ? `basefee=${blocks[0].header.baseFeePerGas} `
-          : ''
-        this.config.logger.info(
-          `Imported blocks count=${blocks.length} number=${first.toString(
-            10
-          )} hash=${hash} ${baseFeeAdd}hardfork=${this.config.chainCommon.hardfork()} peers=${
-            this.pool.size
-          }`
-        )
-      })
+    this.config.events.on(Event.SYNC_FETCHER_FETCHED, (blocks: any) => {
+      const first = new BN((blocks[0] as Block).header.number)
+      const hash = short((blocks[0] as Block).hash())
+      const baseFeeAdd = this.config.chainCommon.gteHardfork('london')
+        ? `basefee=${(blocks[0] as Block).header.baseFeePerGas} `
+        : ''
+      this.config.logger.info(
+        `Imported blocks count=${(blocks as Block[]).length} number=${first.toString(
+          10
+        )} hash=${hash} ${baseFeeAdd}hardfork=${this.config.chainCommon.hardfork()} peers=${
+          this.pool.size
+        }`
+      )
+    })
     await this.blockFetcher.fetch()
     // TODO: Should this be deleted?
     // @ts-ignore: error: The operand of a 'delete' operator must be optional

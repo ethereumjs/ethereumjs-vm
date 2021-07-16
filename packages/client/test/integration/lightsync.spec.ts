@@ -1,4 +1,5 @@
 import tape from 'tape'
+import { Event } from '../../lib/types'
 import { wait, setup, destroy } from './util'
 
 tape('[Integration:LightSync]', async (t) => {
@@ -15,7 +16,7 @@ tape('[Integration:LightSync]', async (t) => {
     })
     await localService.synchronizer.stop()
     await localServer.discover('remotePeer1', '127.0.0.2')
-    localService.on('synchronized', async () => {
+    localService.config.events.on(Event.SYNC_SYNCHRONIZED, async () => {
       t.equals(localService.chain.headers.height.toNumber(), 20, 'synced')
       await destroy(localServer, localService)
       await destroy(remoteServer, remoteService)
@@ -35,7 +36,7 @@ tape('[Integration:LightSync]', async (t) => {
       height: 10,
       syncmode: 'light',
     })
-    localService.on('synchronized', async () => {
+    localService.config.events.on(Event.SYNC_SYNCHRONIZED, async () => {
       t.fail('synced with a stale peer')
     })
     await localServer.discover('remotePeer', '127.0.0.2')
@@ -65,16 +66,14 @@ tape('[Integration:LightSync]', async (t) => {
     await localService.synchronizer.stop()
     await localServer.discover('remotePeer1', '127.0.0.2')
     await localServer.discover('remotePeer2', '127.0.0.3')
-    localService.on('synchronized', async () => {
-      // This event may fire twice
-      if (!localService.chain.headers.height.eqn(10)) {
-        return
+    localService.config.events.on(Event.SYNC_SYNCHRONIZED, async () => {
+      if (localService.chain.headers.height.toNumber() === 10) {
+        t.pass('synced with best peer')
+        await destroy(localServer, localService)
+        await destroy(remoteServer1, remoteService1)
+        await destroy(remoteServer2, remoteService2)
+        t.end()
       }
-      t.ok(localService.chain.headers.height.eqn(10), 'synced with best peer')
-      await destroy(localServer, localService)
-      await destroy(remoteServer1, remoteService1)
-      await destroy(remoteServer2, remoteService2)
-      t.end()
     })
     await localService.synchronizer.start()
   })

@@ -5,6 +5,7 @@ import { PeerPool } from '../../lib/net/peerpool'
 import MockServer from './mocks/mockserver'
 import MockChain from './mocks/mockchain'
 import Blockchain from '@ethereumjs/blockchain'
+import { Event } from '../../lib/types'
 
 tape('[Integration:PeerPool]', async (t) => {
   async function setup(protocols: EthProtocol[] = []): Promise<[MockServer, PeerPool]> {
@@ -32,9 +33,13 @@ tape('[Integration:PeerPool]', async (t) => {
 
   t.test('should add/remove peer', async (t) => {
     const [server, pool] = await setup()
-    pool.on('added', (peer: any) => t.equal(peer.id, 'peer0', 'added peer'))
-    pool.on('removed', (peer: any) => t.equal(peer.id, 'peer0', 'removed peer'))
-    await server.accept('peer0')
+    pool.config.events.on(Event.POOL_PEER_ADDED, (peer: any) =>
+      t.equal(peer.id, 'peer0', 'added peer')
+    )
+    pool.config.events.on(Event.POOL_PEER_REMOVED, (peer: any) =>
+      t.equal(peer.id, 'peer0', 'removed peer')
+    )
+    pool.add(await server.accept('peer0'))
     setTimeout(async () => {
       server.disconnect('peer0')
       await destroy(server, pool)
@@ -45,9 +50,13 @@ tape('[Integration:PeerPool]', async (t) => {
 
   t.test('should ban peer', async (t) => {
     const [server, pool] = await setup()
-    pool.on('added', (peer: any) => t.equal(peer.id, 'peer0', 'added peer'))
-    pool.on('banned', (peer: any) => t.equal(peer.id, 'peer0', 'banned peer'))
-    await server.accept('peer0')
+    pool.config.events.on(Event.POOL_PEER_ADDED, (peer: any) =>
+      t.equal(peer.id, 'peer0', 'added peer')
+    )
+    pool.config.events.on(Event.POOL_PEER_BANNED, (peer: any) =>
+      t.equal(peer.id, 'peer0', 'banned peer')
+    )
+    pool.add(await server.accept('peer0'))
     setTimeout(async () => {
       pool.ban(pool.peers[0])
       await destroy(server, pool)
@@ -71,13 +80,13 @@ tape('[Integration:PeerPool]', async (t) => {
       }),
     ]
     const [server, pool] = await setup(protocols)
-    pool.on('added', (peer: any) => t.equal(peer.id, 'peer0', 'added peer'))
-    pool.on('message', (msg: any, proto: any, peer: any) => {
+    config.events.on(Event.POOL_PEER_ADDED, (peer: any) => t.equal(peer.id, 'peer0', 'added peer'))
+    config.events.on(Event.PROTOCOL_MESSAGE, (msg: any, proto: any, peer: any) => {
       t.deepEqual([msg, proto, peer.id], ['msg0', 'proto0', 'peer0'], 'got message')
     })
-    await server.accept('peer0')
+    pool.add(await server.accept('peer0'))
     setTimeout(async () => {
-      pool.peers[0].emit('message', 'msg0', 'proto0')
+      config.events.emit(Event.PROTOCOL_MESSAGE, 'msg0', 'proto0', pool.peers[0])
       await destroy(server, pool)
       t.pass('destroyed')
       t.end()

@@ -1,7 +1,9 @@
 import { EventEmitter } from 'events'
 import tape from 'tape-catch'
 import td from 'testdouble'
+import { BN } from '../../../util/dist'
 import { Config } from '../../lib/config'
+import { Event } from '../../lib/types'
 
 tape('[LightEthereumService]', async (t) => {
   class PeerPool extends EventEmitter {
@@ -52,15 +54,17 @@ tape('[LightEthereumService]', async (t) => {
     td.verify(service.chain.open())
     td.verify(service.synchronizer.open())
     td.verify(server.addProtocols(td.matchers.anything()))
-    service.on('synchronized', () => t.pass('synchronized'))
-    service.once('error', (err: string) => t.equals(err, 'error0', 'got error 1'))
-    service.synchronizer.emit('synchronized')
-    service.synchronizer.emit('error', 'error0')
-    service.once('error', (err: string) => t.equals(err, 'error1', 'got error 2'))
-    service.pool.emit('banned', 'peer0')
-    service.pool.emit('added', 'peer0')
-    service.pool.emit('removed', 'peer0')
-    service.pool.emit('error', 'error1')
+    service.config.events.on(Event.SYNC_SYNCHRONIZED, () => t.pass('synchronized'))
+    service.config.events.on(Event.SYNC_ERROR, (err: Error) => {
+      if (err.message === 'error0') t.pass('got error 1')
+    })
+    service.config.events.emit(Event.SYNC_SYNCHRONIZED, new BN(0))
+    service.config.events.emit(Event.SYNC_ERROR, new Error('error0'))
+    service.config.events.on(Event.SERVER_ERROR, (err: Error) => {
+      if (err.message === 'error1') t.pass('got error 2')
+    })
+    service.config.events.emit(Event.SERVER_ERROR, new Error('error1'), server)
+    await service.stop()
   })
 
   t.test('should start/stop', async (t) => {

@@ -119,12 +119,6 @@ export class Peer extends events.EventEmitter {
    */
   async bindProtocol(protocol: Protocol, sender: Sender): Promise<void> {
     const bound = await protocol.bind(this, sender)
-    bound.on('message', (message: any) => {
-      this.emit('message', message, protocol.name)
-    })
-    bound.on('error', (error: Error) => {
-      this.emit('error', error, protocol.name)
-    })
     this.bound.set(bound.name, bound)
   }
 

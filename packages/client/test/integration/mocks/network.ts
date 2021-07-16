@@ -33,6 +33,7 @@ export function createServer(location: string) {
     server: new EventEmitter(),
     streams: {},
   }
+  // TODO: Convert to proper server listening event if needed
   setTimeout(() => servers[location].server.emit('listening'), 10)
   return servers[location].server
 }

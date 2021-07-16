@@ -4,6 +4,7 @@ import { Peer } from '../net/peer/peer'
 import { FlowControl } from '../net/protocol'
 import { Config } from '../config'
 import { Chain } from '../blockchain'
+import { Event } from '../types'
 // eslint-disable-next-line implicit-dependencies/no-implicit
 import type { LevelUp } from 'levelup'
 
@@ -59,7 +60,7 @@ export abstract class Synchronizer extends EventEmitter {
     this.forceSync = false
     this.startingBlock = 0
 
-    this.pool.on('added', (peer: Peer) => {
+    this.config.events.on(Event.POOL_PEER_ADDED, (peer: Peer) => {
       if (this.syncable(peer)) {
         this.config.logger.debug(`Found ${this.type} peer: ${peer}`)
       }
@@ -103,9 +104,11 @@ export abstract class Synchronizer extends EventEmitter {
     }, this.interval * 30)
     while (this.running) {
       try {
-        if (await this.sync()) this.emit('synchronized')
+        if (await this.sync()) {
+          this.config.events.emit(Event.SYNC_SYNCHRONIZED, this.chain.blocks.height)
+        }
       } catch (error) {
-        this.emit('error', error)
+        this.config.events.emit(Event.SYNC_ERROR, error)
       }
       await new Promise((resolve) => setTimeout(resolve, this.interval))
     }

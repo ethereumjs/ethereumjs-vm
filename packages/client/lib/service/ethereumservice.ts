@@ -64,8 +64,6 @@ export class EthereumService extends Service {
       return false
     }
     await super.open()
-    this.synchronizer.on('synchronized', () => this.emit('synchronized'))
-    this.synchronizer.on('error', (error: Error) => this.emit('error', error))
     await this.chain.open()
     await this.synchronizer.open()
   }

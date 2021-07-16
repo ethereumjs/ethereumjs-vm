@@ -3,6 +3,7 @@ import { Message, Protocol } from '../protocol/protocol'
 import { Peer } from '../peer/peer'
 import { Sender } from './sender'
 import { Config } from '../../config'
+import { Event } from '../../types'
 
 export interface BoundProtocolOptions {
   /* Config */
@@ -60,10 +61,12 @@ export class BoundProtocol extends EventEmitter {
           this.messageQueue.push(message)
         }
       } catch (error) {
-        this.emit('error', error)
+        this.config.events.emit(Event.PROTOCOL_ERROR, error, this.peer)
       }
     })
-    this.sender.on('error', (error: Error) => this.emit('error', error))
+    this.sender.on('error', (error: Error) =>
+      this.config.events.emit(Event.PROTOCOL_ERROR, error, this.peer)
+    )
     this.addMethods()
   }
 
@@ -110,9 +113,14 @@ export class BoundProtocol extends EventEmitter {
       }
     } else {
       if (error) {
-        this.emit('error', error)
+        this.config.events.emit(Event.PROTOCOL_ERROR, error, this.peer)
       } else {
-        this.emit('message', { name: message.name, data: data })
+        this.config.events.emit(
+          Event.PROTOCOL_MESSAGE,
+          { name: message.name, data: data },
+          this.protocol.name,
+          this.peer
+        )
       }
     }
   }
@@ -183,7 +191,7 @@ export class BoundProtocol extends EventEmitter {
       const camel = name[0].toLowerCase() + name.slice(1)
       ;(this as any)[camel] = async (args: any[]) =>
         this.request(name, args).catch((error: Error) => {
-          this.emit('error', error)
+          this.config.events.emit(Event.PROTOCOL_ERROR, error, this.peer)
           return undefined
         })
     }

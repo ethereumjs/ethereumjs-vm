@@ -2,6 +2,7 @@ import events from 'events'
 import { MultiaddrLike } from './types'
 import { Config } from './config'
 import { FullEthereumService, LightEthereumService } from './service'
+import { Event } from './types'
 // eslint-disable-next-line implicit-dependencies/no-implicit
 import type { LevelUp } from 'levelup'
 
@@ -81,25 +82,17 @@ export default class EthereumClient extends events.EventEmitter {
     if (this.opened) {
       return false
     }
-    this.config.servers.map((s) => {
-      s.on('error', (error: Error) => {
-        this.emit('error', error)
-      })
-      s.on('listening', (details: any) => {
-        this.emit('listening', details)
-      })
+
+    this.config.events.on(Event.SERVER_ERROR, (error: Error) => {
+      this.config.logger.warn(`Server error: ${error.name} - ${error.message}`)
     })
-    this.services.map((s) => {
-      s.on('error', (error: Error) => {
-        this.emit('error', error)
-      })
-      s.on('synchronized', () => {
-        this.emit('synchronized')
-        this.synchronized = true
-      })
+
+    this.config.events.on(Event.SERVER_LISTENING, (details: any) => {
+      this.config.logger.info(`Server listening: ${details.transport} - ${details.url}`)
     })
     await Promise.all(this.services.map((s) => s.open()))
     this.opened = true
+    this.config.events.on(Event.SYNC_SYNCHRONIZED, () => (this.synchronized = true))
   }
 
   /**

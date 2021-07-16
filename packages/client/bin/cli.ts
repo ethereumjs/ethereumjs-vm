@@ -7,6 +7,7 @@ import EthereumClient from '../lib/client'
 import { Config } from '../lib/config'
 import { Logger } from '../lib/logging'
 import { RPCManager } from '../lib/rpc'
+import { Event } from '../lib/types'
 const os = require('os')
 const path = require('path')
 const fs = require('fs-extra')
@@ -146,12 +147,12 @@ async function runNode(config: Config) {
     chainDB: level(chainDataDir),
     stateDB: level(stateDataDir),
   })
-  client.on('error', (err: any) => config.logger.error(err))
-  client.on('listening', (details: any) => {
+  client.config.events.on(Event.SERVER_ERROR, (err: any) => config.logger.error(err))
+  client.config.events.on(Event.SERVER_LISTENING, (details: any) => {
     config.logger.info(`Listener up transport=${details.transport} url=${details.url}`)
   })
-  client.on('synchronized', () => {
-    config.logger.info('Synchronized')
+  config.events.on(Event.SYNC_SYNCHRONIZED, (height) => {
+    client.config.logger.info(`Synchronized blockchain at height ${height.toNumber()}`)
   })
   config.logger.info(`Connecting to network: ${config.chainCommon.chainName()}`)
   await client.open()
@@ -212,7 +213,7 @@ async function run() {
     discV4: args.discV4,
   })
   logger = config.logger
-
+  config.events.setMaxListeners(50)
   // TODO: see todo below wrt resolving chain param parsing
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const chainParams = args.params ? await parseParams(args.params) : args.network

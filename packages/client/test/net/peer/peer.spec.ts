@@ -3,6 +3,7 @@ import tape from 'tape-catch'
 import td from 'testdouble'
 import { Peer } from '../../../lib/net/peer'
 import { Config } from '../../../lib/config'
+import { Event } from '../../../lib/types'
 
 tape('[Peer]', (t) => {
   const config = new Config({ transports: [], loglevel: 'error' })
@@ -32,14 +33,14 @@ tape('[Peer]', (t) => {
     td.when(protocol.bind(peer, sender)).thenResolve(bound)
     await peer.bindProtocol(protocol, sender)
     t.equals(peer.bound.get('bound0'), bound, 'protocol bound')
-    peer.on('message', (msg: string, name: string) => {
-      t.ok(msg === 'msg0' && name === 'proto0', 'on message')
+    config.events.on(Event.PROTOCOL_MESSAGE, (msg: string, name: string, msgPeer: Peer) => {
+      t.ok(msg === 'msg0' && name === 'proto0' && msgPeer === peer, 'on message')
     })
-    peer.on('error', (err: Error, name: string) => {
-      t.ok(err.message === 'err0' && name === 'proto0', 'on error')
+    config.events.on(Event.PEER_ERROR, (err) => {
+      if (err.message === 'err0') t.pass('on error')
     })
-    bound.emit('message', 'msg0')
-    bound.emit('error', new Error('err0'))
+    config.events.emit(Event.PROTOCOL_MESSAGE, 'msg0', 'proto0', peer)
+    config.events.emit(Event.PEER_ERROR, new Error('err0'), peer)
   })
 
   t.test('should understand protocols', (t) => {

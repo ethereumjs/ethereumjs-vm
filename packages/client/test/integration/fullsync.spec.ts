@@ -1,4 +1,5 @@
 import tape from 'tape'
+import { Event } from '../../lib/types'
 import { wait, setup, destroy } from './util'
 
 tape('[Integration:FullSync]', async (t) => {
@@ -7,7 +8,7 @@ tape('[Integration:FullSync]', async (t) => {
     const [localServer, localService] = await setup({ location: '127.0.0.1', height: 0 })
     await localService.synchronizer.stop()
     await localServer.discover('remotePeer1', '127.0.0.2')
-    localService.on('synchronized', async () => {
+    localService.config.events.on(Event.SYNC_SYNCHRONIZED, async () => {
       t.equals(localService.chain.blocks.height.toNumber(), 20, 'synced')
       await destroy(localServer, localService)
       await destroy(remoteServer, remoteService)
@@ -19,7 +20,7 @@ tape('[Integration:FullSync]', async (t) => {
   t.test('should not sync with stale peers', async (t) => {
     const [remoteServer, remoteService] = await setup({ location: '127.0.0.2', height: 9 })
     const [localServer, localService] = await setup({ location: '127.0.0.1', height: 10 })
-    localService.on('synchronized', async () => {
+    localService.config.events.on(Event.SYNC_SYNCHRONIZED, async () => {
       t.fail('synced with a stale peer')
     })
     await localServer.discover('remotePeer', '127.0.0.2')
@@ -37,16 +38,14 @@ tape('[Integration:FullSync]', async (t) => {
     await localService.synchronizer.stop()
     await localServer.discover('remotePeer1', '127.0.0.2')
     await localServer.discover('remotePeer2', '127.0.0.3')
-    localService.on('synchronized', async () => {
-      // This event may fire twice
-      if (!localService.chain.blocks.height.eqn(10)) {
-        return
+    localService.config.events.on(Event.SYNC_SYNCHRONIZED, async () => {
+      if (localService.chain.blocks.height.toNumber() === 10) {
+        t.pass('synced with best peer')
+        await destroy(localServer, localService)
+        await destroy(remoteServer1, remoteService1)
+        await destroy(remoteServer2, remoteService2)
+        t.end()
       }
-      t.ok(localService.chain.blocks.height.eqn(10), 'synced with best peer')
-      await destroy(localServer, localService)
-      await destroy(remoteServer1, remoteService1)
-      await destroy(remoteServer2, remoteService2)
-      t.end()
     })
     await localService.synchronizer.start()
   })

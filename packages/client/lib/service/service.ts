@@ -3,6 +3,7 @@ import { Config } from '../config'
 import { PeerPool } from '../net/peerpool'
 import { Peer } from '../net/peer/peer'
 import { Protocol } from '../net/protocol'
+import { Event } from '../types'
 
 export interface ServiceOptions {
   /* Config */
@@ -35,17 +36,20 @@ export class Service extends events.EventEmitter {
       config: this.config,
     })
 
-    this.pool.on('message', async (message: any, protocol: string, peer: Peer) => {
-      if (this.running) {
-        try {
-          await this.handle(message, protocol, peer)
-        } catch (error) {
-          this.config.logger.debug(
-            `Error handling message (${protocol}:${message.name}): ${error.message}`
-          )
+    this.config.events.on(
+      Event.PROTOCOL_MESSAGE,
+      async (message: any, protocol: string, peer: Peer) => {
+        if (this.running) {
+          try {
+            await this.handle(message, protocol, peer)
+          } catch (error) {
+            this.config.logger.debug(
+              `Error handling message (${protocol}:${message.name}): ${error.message}`
+            )
+          }
         }
       }
-    })
+    )
 
     this.opened = false
     this.running = false
@@ -80,10 +84,16 @@ export class Service extends events.EventEmitter {
     const protocols = this.protocols
     this.config.servers.map((s) => s.addProtocols(protocols))
 
-    this.pool.on('banned', (peer: Peer) => this.config.logger.debug(`Peer banned: ${peer}`))
-    this.pool.on('error', (error: Error) => this.emit('error', error))
-    this.pool.on('added', (peer: Peer) => this.config.logger.debug(`Peer added: ${peer}`))
-    this.pool.on('removed', (peer: Peer) => this.config.logger.debug(`Peer removed: ${peer}`))
+    this.config.events.on(Event.POOL_PEER_BANNED, (peer: Peer) =>
+      this.config.logger.debug(`Peer banned: ${peer}`)
+    )
+    //this.config.events.on(Event.Peer, (error: Error) => this.emit('error', error))
+    this.config.events.on(Event.POOL_PEER_ADDED, (peer: Peer) =>
+      this.config.logger.debug(`Peer added: ${peer}`)
+    )
+    this.config.events.on(Event.POOL_PEER_REMOVED, (peer: Peer) =>
+      this.config.logger.debug(`Peer removed: ${peer}`)
+    )
     await this.pool.open()
 
     this.opened = true

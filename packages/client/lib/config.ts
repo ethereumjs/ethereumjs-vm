@@ -5,6 +5,7 @@ import Multiaddr from 'multiaddr'
 import { getLogger, Logger } from './logging'
 import { Libp2pServer, RlpxServer } from './net/server'
 import { parseTransports } from './util'
+import { EventBus, EventBusType } from './types'
 // eslint-disable-next-line implicit-dependencies/no-implicit
 import type { LevelUp } from 'levelup'
 const level = require('level')
@@ -178,6 +179,12 @@ export interface ConfigOptions {
 }
 
 export class Config {
+  /**
+   * Central event bus for events emitted by the different
+   * components of the client
+   */
+  public readonly events: EventBusType
+
   public static readonly CHAIN_DEFAULT = 'mainnet'
   public static readonly SYNCMODE_DEFAULT = 'full'
   public static readonly LIGHTSERV_DEFAULT = false
@@ -222,6 +229,8 @@ export class Config {
   public readonly servers: (RlpxServer | Libp2pServer)[] = []
 
   constructor(options: ConfigOptions = {}) {
+    this.events = new EventBus() as EventBusType
+
     this.syncmode = options.syncmode ?? Config.SYNCMODE_DEFAULT
     this.vm = options.vm
     this.lightserv = options.lightserv ?? Config.LIGHTSERV_DEFAULT

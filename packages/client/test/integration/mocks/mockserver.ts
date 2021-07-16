@@ -1,4 +1,5 @@
 import { Server, ServerOptions } from '../../../lib/net/server'
+import { Event } from '../../../lib/types'
 import MockPeer from './mockpeer'
 import { RemoteStream, createServer, destroyServer } from './network'
 
@@ -30,11 +31,9 @@ export default class MockServer extends Server {
     await this.wait(1)
 
     this.server = createServer(this.location) as any
-    this.server!.on('listening', () => {
-      this.emit('listening', {
-        transport: this.name,
-        url: `mock://${this.location}`,
-      })
+    this.config.events.emit(Event.SERVER_LISTENING, {
+      transport: this.name,
+      url: `mock://${this.location}`,
     })
 
     this.server!.on('connection', async ({ id, stream }) => {
@@ -59,7 +58,7 @@ export default class MockServer extends Server {
     const peer = new MockPeer({ id, location, protocols: Array.from(this.protocols), ...opts })
     await peer.connect()
     this.peers[id] = peer
-    this.emit('connected', peer)
+    this.config.events.emit(Event.POOL_PEER_ADDED, peer)
     return peer
   }
 
@@ -81,13 +80,13 @@ export default class MockServer extends Server {
     })
     await peer.bindProtocols(stream)
     this.peers[id] = peer
-    this.emit('connected', peer)
+    this.config.events.emit(Event.PEER_CONNECTED, peer)
   }
 
   disconnect(id: string) {
     const peer = this.peers[id]
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-    if (peer) this.emit('disconnected', peer)
+    if (peer) this.config.events.emit(Event.PEER_DISCONNECTED, peer)
   }
 
   async wait(delay?: number) {

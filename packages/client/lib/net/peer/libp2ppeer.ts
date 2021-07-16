@@ -6,7 +6,7 @@ import { Peer, PeerOptions } from './peer'
 import { Libp2pNode } from './libp2pnode'
 import { Protocol } from '../protocol'
 import { Libp2pServer } from '../server'
-
+import { Event } from '../../types'
 export interface Libp2pPeerOptions extends Omit<PeerOptions, 'address' | 'transport'> {
   /* Multiaddrs to listen on */
   multiaddrs?: multiaddr[]
@@ -67,7 +67,7 @@ export class Libp2pPeer extends Peer {
       await node.dial(ma)
       await this.bindProtocols(node, ma)
     }
-    this.emit('connected')
+    this.config.events.emit(Event.PEER_CONNECTED, this)
   }
 
   /**

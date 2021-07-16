@@ -4,6 +4,7 @@ import td from 'testdouble'
 import { Config } from '../../lib/config'
 import { Chain } from '../../lib/blockchain'
 import { Synchronizer } from '../../lib/sync/sync'
+import { Event } from '../../lib/types'
 
 class SynchronizerTest extends Synchronizer {
   async sync() {
@@ -27,7 +28,7 @@ tape('[Synchronizer]', async (t) => {
     const sync = new SynchronizerTest({ config, pool, chain })
     ;(sync as any).sync = td.func()
     td.when((sync as any).sync()).thenResolve(true)
-    sync.on('synchronized', async () => {
+    config.events.on(Event.SYNC_SYNCHRONIZED, async () => {
       t.ok('synchronized')
       await sync.stop()
       t.notOk((sync as any).running, 'stopped')

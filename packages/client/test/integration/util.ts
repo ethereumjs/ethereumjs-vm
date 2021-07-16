@@ -29,6 +29,8 @@ export async function setup(
 
   const servers = [server] as any
   const serviceConfig = new Config({ loglevel, syncmode, servers, lightserv, minPeers: 1 })
+  //@ts-ignore -- attach server eventbus to ethereums service eventbus (to simulate centralized client eventbus))
+  server.config.events = serviceConfig.events
   const serviceOpts = {
     config: serviceConfig,
     chain,

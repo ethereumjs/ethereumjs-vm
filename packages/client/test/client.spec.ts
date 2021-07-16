@@ -1,8 +1,10 @@
 import { EventEmitter } from 'events'
 import tape from 'tape-catch'
 import td from 'testdouble'
+import { BN } from '../../util/dist'
 import { Config } from '../lib/config'
 import { PeerPool } from '../lib/net/peerpool'
+import { Event } from '../lib/types'
 
 tape('[EthereumClient]', async (t) => {
   const config = new Config({ transports: [], loglevel: 'error' })
@@ -46,22 +48,12 @@ tape('[EthereumClient]', async (t) => {
   })
 
   t.test('should open', async (t) => {
-    t.plan(6)
+    t.plan(2)
     const servers = [new Server()] as any
     const config = new Config({ servers })
     const client = new EthereumClient({ config })
-    client.on('error', (err: string) => {
-      if (err === 'err0') t.pass('got err0')
-      if (err === 'err1') t.pass('got err1')
-    })
-    client.on('listening', (details: string) => t.equals(details, 'details0', 'got listening'))
-    client.on('synchronized', () => t.ok('got synchronized'))
-    await client.open()
-    servers[0].emit('error', 'err0')
-    servers[0].emit('listening', 'details0')
-    client.services[0].emit('error', 'err1')
-    client.services[0].emit('synchronized')
 
+    await client.open()
     t.ok(client.opened, 'opened')
     t.equals(await client.open(), false, 'already opened')
   })
@@ -73,7 +65,7 @@ tape('[EthereumClient]', async (t) => {
 
     t.equals(client.synchronized, false, 'not synchronized yet')
     await client.open()
-    client.services[0].emit('synchronized')
+    config.events.emit(Event.SYNC_SYNCHRONIZED, new BN(0))
     t.equals(client.synchronized, true, 'synchronized')
     t.end()
   })

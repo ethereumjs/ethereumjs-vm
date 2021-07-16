@@ -1,6 +1,7 @@
 import { EventEmitter } from 'events'
 import { Config } from '../config'
-import { Peer } from './peer/peer'
+import { Event } from '../types'
+import { Peer } from './peer'
 import { RlpxServer } from './server'
 
 export interface PeerPoolOptions {
@@ -62,14 +63,14 @@ export class PeerPool extends EventEmitter {
     if (this.opened) {
       return false
     }
-    this.config.servers.map((s) => {
-      s.on('connected', (peer: Peer) => {
-        this.connected(peer)
-      })
-      s.on('disconnected', (peer: Peer) => {
-        this.disconnected(peer)
-      })
+    this.config.events.on(Event.PEER_CONNECTED, (peer) => {
+      this.connected(peer)
     })
+
+    this.config.events.on(Event.PEER_DISCONNECTED, (peer) => {
+      this.disconnected(peer)
+    })
+
     this.opened = true
     // eslint-disable-next-line @typescript-eslint/await-thenable
     this._statusCheckInterval = setInterval(await this._statusCheck.bind(this), 20000)
@@ -131,13 +132,7 @@ export class PeerPool extends EventEmitter {
    */
   connected(peer: Peer) {
     if (this.size >= this.config.maxPeers) return
-    peer.on('message', (message: any, protocol: string) => {
-      if (this.pool.get(peer.id)) {
-        this.emit('message', message, protocol, peer)
-        this.emit(`message:${protocol}`, message, peer)
-      }
-    })
-    peer.on('error', (error: Error) => {
+    this.config.events.on(Event.PEER_ERROR, (error, peer) => {
       if (this.pool.get(peer.id)) {
         this.config.logger.warn(`Peer error: ${error} ${peer}`)
         this.ban(peer)
@@ -169,7 +164,7 @@ export class PeerPool extends EventEmitter {
     }
     peer.server.ban(peer.id, maxAge)
     this.remove(peer)
-    this.emit('banned', peer)
+    this.config.events.emit(Event.POOL_PEER_BANNED, peer)
   }
 
   /**
@@ -183,7 +178,7 @@ export class PeerPool extends EventEmitter {
     if (peer && peer.id && !this.pool.get(peer.id)) {
       this.pool.set(peer.id, peer)
       peer.pooled = true
-      this.emit('added', peer)
+      this.config.events.emit(Event.POOL_PEER_ADDED, peer)
     }
   }
 
@@ -196,7 +191,7 @@ export class PeerPool extends EventEmitter {
     if (peer && peer.id) {
       if (this.pool.delete(peer.id)) {
         peer.pooled = false
-        this.emit('removed', peer)
+        this.config.events.emit(Event.POOL_PEER_REMOVED, peer)
       }
     }
   }

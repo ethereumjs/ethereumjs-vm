@@ -9,7 +9,7 @@ import {
 import { Protocol, RlpxSender } from '../protocol'
 import { Peer, PeerOptions } from './peer'
 import { RlpxServer } from '../server'
-
+import { Event } from '../../types'
 const devp2pCapabilities: any = {
   eth66: Devp2pETH.eth66,
   les2: Devp2pLES.les2,
@@ -111,28 +111,27 @@ export class RlpxPeer extends Peer {
       address: this.host,
       tcpPort: this.port,
     })
-    this.rlpx.on('peer:error', (rlpxPeer: Devp2pRlpxPeer, error: Error) => {
-      this.emit('error', error)
+    this.rlpx.on('peer:error', (_: Devp2pRlpxPeer, error: Error) => {
+      this.config.events.emit(Event.PEER_ERROR, error, this)
     })
     this.rlpx.once('peer:added', async (rlpxPeer: Devp2pRlpxPeer) => {
       try {
         await this.bindProtocols(rlpxPeer)
-        this.emit('connected')
+        this.config.events.emit(Event.PEER_CONNECTED, this)
       } catch (error) {
-        this.emit('error', error)
+        this.config.events.emit(Event.PEER_ERROR, error, this)
       }
     })
-    this.rlpx.once('peer:removed', (rlpxPeer: Devp2pRlpxPeer, reason: any) => {
+    this.rlpx.once('peer:removed', (rlpxPeer: Devp2pRlpxPeer) => {
       try {
         if (rlpxPeer !== this.rlpxPeer) {
           return
         }
-        reason = rlpxPeer.getDisconnectPrefix(reason)
         this.rlpxPeer = null
         this.connected = false
-        this.emit('disconnected', reason as string)
+        this.config.events.emit(Event.PEER_DISCONNECTED, this)
       } catch (error) {
-        this.emit('error', error)
+        this.config.events.emit(Event.PEER_ERROR, error, this)
       }
     })
   }
